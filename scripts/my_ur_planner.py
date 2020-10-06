@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 from quadrillion_test import *
 from moveit_test import MoveGroupPythonInteface
 from control_msgs.msg import JointTrajectoryControllerState

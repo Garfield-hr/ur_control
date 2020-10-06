@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import rospy, math
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -12,7 +12,7 @@ def talker():
     rate = rospy.Rate(10)
     goal_pose = Pose()
     goal_pose.position = geometry_msgs.msg.Point(x=0.3, y=0, z=0.9)
-    goal_pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=-1, z=0, w=0)
+    goal_pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=-math.sin(math.pi/4), z=0, w=math.cos(math.pi/4))
     seq = 1
     while not rospy.is_shutdown():
         goal_pose.position.x = 0.4*math.cos(0.1*seq)

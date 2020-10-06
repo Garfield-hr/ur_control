@@ -1,0 +1,8 @@
+<launch>
+    <group ns="my_ur_control_simulation">
+        <node pkg="my_ur_control" name="planner" type="my_ur_planner.py"/>
+        <node pkg="my_ur_control" name="ik" type="my_ur_ik"/>
+        <node pkg="my_ur_control" name="publisher" type="my_talker.py"/>
+     </group>
+
+</launch>

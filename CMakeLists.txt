@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(my_ur_control)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS

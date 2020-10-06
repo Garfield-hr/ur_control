@@ -22,10 +22,10 @@ urIkNode::~urIkNode(){}
 void urIkNode::transfer(const geometry_msgs::Pose::ConstPtr& eeState) {
     const robot_state::JointModelGroup *joint_model_group =
             kinematic_model->getJointModelGroup("manipulator");
-    Eigen::AngleAxisd rotation_vector( eeState->orientation.w,
-            Eigen::Vector3d( eeState->orientation.x,
-                    eeState->orientation.y, eeState->orientation.z));
-    cout<<rotation_vector.toRotationMatrix()<<endl;
+
+    Eigen::Quaterniond qua(eeState->orientation.w, eeState->orientation.x,
+            eeState->orientation.y, eeState->orientation.z);
+    Eigen::AngleAxisd rotation_vector(qua);
     Eigen::Isometry3d transformMat = Eigen::Isometry3d::Identity();
     transformMat.rotate(rotation_vector);
     transformMat.pretranslate(Eigen::Vector3d(eeState->position.x,
