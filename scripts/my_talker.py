@@ -17,7 +17,7 @@ def talker():
     while not rospy.is_shutdown():
         goal_pose.position.x = 0.4*math.cos(0.1*seq)
         goal_pose.position.y = 0.4*math.sin(0.1*seq)
-        seq += 1
+        seq += 1　　
         pub.publish(goal_pose)
         rate.sleep()
     # gaol_point = JointTrajectoryPoint()
