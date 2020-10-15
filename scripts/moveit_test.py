@@ -1,5 +1,5 @@
 
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Software License Agreement (BSD License)
 #

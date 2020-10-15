@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     // spinner.start();
 
     const string pub_topic = "my_command";
-    const string sub_topic = "my_command_pose";
+    const string sub_topic = "catch_point";
     const string robot_description = "robot_description";
 
     urIkNode ik(pub_topic, sub_topic, robot_description);

@@ -85,7 +85,7 @@ def nearer_position(start_position, goal_position):
 
 if __name__ == '__main__':
     rospy.init_node('my_controller', anonymous=True)
-    simulation = False
+    simulation = True
     if simulation:
         topic_command = '/arm_controller/command'
         topic_state = '/arm_controller/state'

@@ -21,8 +21,8 @@ urIkNode::~urIkNode(){}
 
 void urIkNode::transfer(const geometry_msgs::PoseStampedConstPtr & eeStateStamp) {
     auto eeState = &(eeStateStamp->pose);
-    cout<<"received a catch point, the goal position is "<<eeState->position.x
-        <<eeState->position.y<< eeState->position.z<<endl;
+    cout<<"received a catch point, the goal position is "<<eeState->position.x<<" "
+        <<eeState->position.y<<" "<< eeState->position.z<<" "<<endl;
     const robot_state::JointModelGroup *joint_model_group =
             kinematic_model->getJointModelGroup("manipulator");
 

@@ -4,20 +4,20 @@ import rospy, math
 from trajectory_msgs.msg import JointTrajectoryPoint
 import geometry_msgs.msg
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 
 def talker():
     rospy.init_node('talker', anonymous=True)
     #pub = rospy.Publisher('my_command_pose', JointTrajectoryPoint, queue_size=10)
-    pub = rospy.Publisher('my_command_pose', Pose, queue_size=10)
+    pub = rospy.Publisher('catch_point', PoseStamped, queue_size=10)
     rate = rospy.Rate(10)
-    goal_pose = Pose()
-    goal_pose.position = geometry_msgs.msg.Point(x=0.3, y=0, z=0.9)
-    goal_pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=-math.sin(math.pi/4), z=0, w=math.cos(math.pi/4))
-    seq = 1
-    while not rospy.is_shutdown():
-        goal_pose.position.x = 0.4*math.cos(0.1*seq)
-        goal_pose.position.y = 0.4*math.sin(0.1*seq)
-        seq += 1
+    goal_pose = PoseStamped()
+    goal_pose.header.stamp = rospy.get_rostime()
+    goal_pose.pose.position = geometry_msgs.msg.Point(x=0.3, y=0, z=0.7)
+    goal_pose.pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=-math.sin(math.pi/4), z=0, w=math.cos(math.pi/4))
+    for i in range(7):
+        goal_pose.pose.position.x -= 0.05
+        goal_pose.header.stamp = rospy.get_rostime() + rospy.Duration.from_sec(0.7 - 0.1*i)
         pub.publish(goal_pose)
         rate.sleep()
     # gaol_point = JointTrajectoryPoint()
