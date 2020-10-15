@@ -27,7 +27,7 @@ def point_interpolation_fifth(para_list, ti):
     return point
 
 
-def traj_generate_with_two_points(joint_point_start, joint_point_goal, deltaT=0.04):
+def traj_generate_with_two_points(joint_point_start, joint_point_goal, deltaT=0.04, interpolation=True):
     # joint_point_start, joint_point_goal = jointPoint
     # initialize trajectory message
     traj = JointTrajectory()
@@ -43,6 +43,10 @@ def traj_generate_with_two_points(joint_point_start, joint_point_goal, deltaT=0.
     para_list = []
     time_start = joint_point_start.time_from_start.to_sec()
     time_goal = joint_point_goal.time_from_start.to_sec()
+    if not interpolation:
+        traj.points.append(joint_point_goal)
+        para_list = []
+        return traj, para_list
     for i in range(len(joint_name_list)):
         A = np.mat([
             [1, time_start, math.pow(time_start, 2), math.pow(time_start, 3), math.pow(time_start, 4),

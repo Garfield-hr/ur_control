@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from moveit_test import MoveGroupPythonInteface
+
 def apply_async(func, args, callback):
     # Compute the result
     result = func(*args)
@@ -21,7 +23,8 @@ class ResultHandler:
 def add(x, y):
     return x + y
 
-
-r = ResultHandler()
-for i in range(10):
-    apply_async(add, (2, 3), callback=r.handler)
+robot = MoveGroupPythonInteface()
+goal = (-0.4, -1.0, 1.8, 0, 1.2, 3.1)
+robot.group.set_joint_value_target(goal)
+plan = robot.group.plan()
+print(type(plan))

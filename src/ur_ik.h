@@ -9,6 +9,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
@@ -22,7 +23,7 @@ public:
     urIkNode(const string& pub_topic, const string& sub_topic,
             const string& robot_description);
     ~urIkNode();
-    void transfer(const geometry_msgs::Pose::ConstPtr& eeState);
+    void transfer(const geometry_msgs::PoseStampedConstPtr & eeStateStamp);
 private:
     ros::NodeHandle n;
     ros::Publisher pub;

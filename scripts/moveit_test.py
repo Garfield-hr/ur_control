@@ -151,12 +151,12 @@ class MoveGroupPythonInteface(object):
   def go_home(self):
       group = self.group
       joint_goal = group.get_current_joint_values()
-      joint_goal[0] = -0.4
-      joint_goal[1] = -1.8
-      joint_goal[2] = 1.8
-      joint_goal[3] = 0#+ 0.643501110063
-      joint_goal[4] = 1.2
-      joint_goal[5] = 3.1
+      joint_goal[0] = 2.32425
+      joint_goal[1] = -1.6369
+      joint_goal[2] = 1.3604
+      joint_goal[3] = -1.3884
+      joint_goal[4] = 1.6226
+      joint_goal[5] = -0.4724
       group.go(joint_goal, wait=True)
       print ("finished")
       print (self.group.get_current_pose().pose)
