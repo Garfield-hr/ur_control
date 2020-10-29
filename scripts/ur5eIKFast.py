@@ -1,6 +1,9 @@
 import subprocess
 from geometry_msgs.msg import Pose
 from tf.transformations import *
+import math
+import random
+import matplotlib.pyplot as plt
 
 
 def ur5e_ik_fast(pose):
@@ -19,13 +22,13 @@ def ur5e_ik_fast(pose):
     except subprocess.CalledProcessError as e:
         out_bytes = e.output
         code = e.returncode
-        print(out_bytes)
-        exit(1)
+        #print(out_bytes)
+        return []
 
     out_text = out_bytes.decode('utf-8')
     out_lines = out_text.split('\n')
     result = []
-    for ind in range(1, 9):
+    for ind in range(1, len(out_lines)-1):
         data_in_line = out_lines[ind].partition(':')[-1]
         data_split = data_in_line.split(',')
         data_split.pop()
@@ -38,15 +41,37 @@ def ur5e_ik_fast(pose):
     return result
 
 
+def draw_workspace():
+    pose1 = Pose()
+    pose1.orientation.x = 0
+    pose1.orientation.y = -math.sin(math.pi / 8)
+    pose1.orientation.z = 0
+    pose1.orientation.w = math.cos(math.pi / 8)
+    pose1.position.z = 0.7
+    xlist = []
+    ylist = []
+    for i in range(1000):
+        pose1.position.x = random.random() - 0.5
+        pose1.position.y = random.random() - 0.5
+        result = ur5e_ik_fast(pose1)
+        if result:
+            xlist.append(pose1.position.x)
+            ylist.append(pose1.position.y)
+
+    plt.scatter(xlist, ylist)
+    plt.show()
+
+
 if __name__ == '__main__':
     pose1 = Pose()
     pose1.orientation.x = 0
     pose1.orientation.y = 0
     pose1.orientation.z = 0
     pose1.orientation.w = 1
-    pose1.position.x = 0
-    pose1.position.y = 0
+    pose1.position.x = -0.2
+    pose1.position.y = -0.2
     pose1.position.z = 0.7
-    results = ur5e_ik_fast(pose1)
-    for result in results:
-        print(result)
+
+    ik_solutions = ur5e_ik_fast(pose1)
+    print(ik_solutions)
+

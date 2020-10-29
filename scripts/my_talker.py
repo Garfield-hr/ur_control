@@ -13,8 +13,8 @@ def talker():
     rate = rospy.Rate(10)
     goal_pose = PoseStamped()
     goal_pose.header.stamp = rospy.get_rostime()
-    goal_pose.pose.position = geometry_msgs.msg.Point(x=-0.37, y=0.24, z=0.71)
-    goal_pose.pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=-math.sin(math.pi/4), z=0, w=math.cos(math.pi/4))
+    goal_pose.pose.position = geometry_msgs.msg.Point(x=-0.37, y=-0.24, z=0.71)
+    goal_pose.pose.orientation = geometry_msgs.msg.Quaternion(x=0, y=0, z=0, w=1)
     for i in range(10):
         goal_pose.pose.position.x += 0.05
         goal_pose.header.stamp = rospy.get_rostime() + rospy.Duration.from_sec(1 - 0.1*i)

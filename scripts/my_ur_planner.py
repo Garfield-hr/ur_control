@@ -105,28 +105,32 @@ class MyRobotPlanner:
         # self.modify_time(plan.joint_trajectory.points)
         # self.pub.publish(plan.joint_trajectory)
 
-    def control_using_ikfast(self, goal_point):
+    def control_using_ikfast(self, goal_pose):
         default_duration = rospy.Duration.from_sec(0.1)
-        print("get a catch point, the position is ", goal_point.pose)
+        print("get a catch point, the position is ", goal_pose.pose)
 
         start_point = self.robot_monitor.joint_point
         complete_point(start_point)
         start_point.time_from_start = rospy.Duration.from_sec(0)
 
-        goal_point_ik = ur5e_ik_fast(goal_point.pose)[0]
-        goal_point_transfered = JointTrajectoryPoint()
-        goal_point_transfered.positions = goal_point_ik
-        complete_point(goal_point_transfered)
-        goal_point_transfered.positions = nearer_position(start_point.positions, goal_point_transfered.positions)
-        time_to_goal = goal_point.header.stamp - rospy.Time.now()
+        goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
+        if not goal_point_ik_joint_space:
+            print("out of range")
+            return
+
+        best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
+        goal_point = JointTrajectoryPoint()
+        goal_point.positions = best_solution
+        complete_point(goal_point)
+        time_to_goal = goal_pose.header.stamp - rospy.Time.now()
         print("try to catch it in ", time_to_goal.to_sec())
         if time_to_goal.to_sec() < 0:
             time_to_goal = default_duration
 
-        goal_point_transfered.time_from_start = time_to_goal
+        goal_point.time_from_start = time_to_goal
 
         # print(goal_point)
-        traj, _ = traj_generate_with_two_points(start_point, goal_point_transfered)
+        traj, _ = traj_generate_with_two_points(start_point, goal_point)
         self.pub.publish(traj)
         self.pub_map.publish(self.robot_monitor.joint_point.positions[0])
 
@@ -161,6 +165,20 @@ def nearer_position(start_position, goal_position):
     return result_position
 
 
+def best_ik_solution(start_position, ik_solutions):
+    weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    distance = []
+    for ik_solution in ik_solutions:
+        nearer_ik_solution = nearer_position(start_position, ik_solution)
+        # print("nearer_ik_solution")
+        # print(nearer_ik_solution)
+        distance.append(np.dot(weight,
+                               np.abs(np.array(start_position) - np.array(nearer_ik_solution))))
+
+    min_dis_ind = distance.index(min(distance))
+    return ik_solutions[min_dis_ind]
+
+
 if __name__ == '__main__':
     rospy.init_node('my_controller', anonymous=True, disable_signals=True)
     simulation = True
@@ -171,7 +189,7 @@ if __name__ == '__main__':
         topic_command = '/scaled_pos_traj_controller/command'
         topic_state = 'scaled_pos_traj_controller/state'
 
-    control_mode = ControlMode.moveit
+    control_mode = ControlMode.ikfast
     my_robot_planner = MyRobotPlanner(topic_command=topic_command, topic_state=topic_state, control_mode=control_mode)
     if control_mode == ControlMode.my_ur_ik:
         rospy.Subscriber('my_command', JointTrajectoryPoint, my_robot_planner.control_robot)
