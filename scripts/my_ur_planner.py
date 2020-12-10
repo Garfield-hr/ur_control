@@ -187,7 +187,7 @@ if __name__ == '__main__':
         topic_state = '/arm_controller/state'
     else:
         topic_command = '/scaled_pos_traj_controller/command'
-        topic_state = 'scaled_pos_traj_controller/state'
+        topic_state = '/scaled_pos_traj_controller/state'
 
     control_mode = ControlMode.ikfast
     my_robot_planner = MyRobotPlanner(topic_command=topic_command, topic_state=topic_state, control_mode=control_mode)
