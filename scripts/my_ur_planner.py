@@ -169,7 +169,7 @@ def nearer_position(start_position, goal_position):
     return result_position
 
 
-def best_ik_solution(start_position, ik_solutions):
+def best_ik_solution(start_position, ik_solutions, return_distance=False):
     weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
     distance = []
     for ind in range(len(ik_solutions)):
@@ -184,6 +184,8 @@ def best_ik_solution(start_position, ik_solutions):
     #                            np.abs(np.array(start_position) - np.array(ik_solution))))
 
     min_dis_ind = distance.index(min(distance))
+    if return_distance:
+        return distance[min_dis_ind]
     return ik_solutions[min_dis_ind]
 
 

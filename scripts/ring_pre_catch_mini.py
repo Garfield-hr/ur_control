@@ -27,25 +27,16 @@ def pre_part():
             print ('cannot catch')
             return
         else:
+            #tcatch = catch_point_least_cartesian_distance(t1, t2, theta)
+            tcatch = catch_point_least_joint_pace_distance(t1, t2, theta)
 
-            #print ("t1 = %s, t2 = %s" %(t1,t2))
-            distance = []
-            t_least_distance = get_nearest_position_time(theta, t2, t1)
-            t_least_distance.append(t1)
-            t_least_distance.append(t2)
-            for ti in t_least_distance:
-                distance.append(distance_with_ee(ti, theta))
-
-            least_index = distance.index(min(distance))
-            tcatch = t_least_distance[least_index]
-
-            #tcatch = (t1 + t2) / 2
-            #print ("tcatch = %s" % tcatch)
+            # tcatch = (t1 + t2) / 2
+            # print ("tcatch = %s" % tcatch)
             catch_position = time_to_loc(theta, tcatch)
             result_location.append(catch_position)
             catch_orientation = solve_orientation_from_v(cal_velocity_vector(theta, tcatch))
             #
-            #print ("Planed catching location = (%s, %s, %s)" % catch_position)
+            # print ("Planed catching location = (%s, %s, %s)" % catch_position)
             deltax = -0.2
             deltay = -0.0
             goal_pose.pose.position.x = catch_position[0] - 0.5 + deltax  # rviz transformation
@@ -83,7 +74,6 @@ def distance_with_ee(t, theta):
     return (t_position[0] - x)**2 + (t_position[1] - y)**2 + (t_position[2] - z)**2
 
 
-
 def get_nearest_position_time(theta, t_start, t_end):
     current_pose = my_robot_planner.robot.group.get_current_pose()
     x = current_pose.pose.position.x
@@ -104,6 +94,52 @@ def get_nearest_position_time(theta, t_start, t_end):
                 result.append(ti)
 
     return result
+
+
+def catch_point_least_cartesian_distance(t1, t2, theta):
+    distance = []
+    t_least_distance = get_nearest_position_time(theta, t2, t1)
+    t_least_distance.append(t1)
+    t_least_distance.append(t2)
+    for ti in t_least_distance:
+        distance.append(distance_with_ee(ti, theta))
+
+    least_index = distance.index(min(distance))
+    tcatch = t_least_distance[least_index]
+    return tcatch
+
+
+def catch_point_least_joint_pace_distance(t1, t2, theta):
+    # sampling
+    time_resolution = 0.01
+    joint_value_list = []
+    t_catch = 0
+    min_distance = -1
+    for i in range(int((t2-t1)/time_resolution) + 1):
+        time_i = t1 + i*time_resolution
+        if time_i > t2:
+            time_i = t2
+        pose = Pose()
+        position = time_to_loc(theta, time_i)  # (x, y, z)
+        velocity = cal_velocity_vector(theta, time_i)
+        orientation = solve_orientation_from_v(velocity)  # (x, y, z, w)
+        pose.position.x = position[0]
+        pose.position.y = position[1]
+        pose.position.z = position[2]
+        pose.orientation.x = orientation[0]
+        pose.orientation.y = orientation[1]
+        pose.orientation.z = orientation[2]
+        pose.orientation.w = orientation[3]
+        joint_values = ur5e_ik_fast(pose)
+        distance = best_ik_solution(my_robot_planner.robot_monitor.joint_point.positions,
+                                       joint_values, return_distance=True)
+        if (distance < min_distance) or (min_distance == -1):
+            min_distance = distance
+            t_catch = time_i
+    # this funct has solved the best joint space value
+    # return time result calculation
+    # but this can let the code keep the same logic
+    return t_catch
 
 
 if __name__ == '__main__':
