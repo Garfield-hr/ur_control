@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED system filesystem date_time thread)
 
 set(THIS_PACKAGE_INCLUDE_DIRS

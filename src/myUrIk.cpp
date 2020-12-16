@@ -8,6 +8,7 @@
 #include "ur_ik.h"
 #include <boost/bind.hpp>
 #include <fstream>
+#include <opencv/opencv.hpp>
 
 
 void ur5e_workspace();
