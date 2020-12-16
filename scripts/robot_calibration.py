@@ -5,6 +5,7 @@ import rospy
 import random
 import copy
 import time
+import math
 
 rospy.init_node('robot_calibration', anonymous=True)
 robot = MoveGroupPythonInteface()
@@ -18,6 +19,11 @@ try:
         next_pose.position.x += random.random() * 0.1
         next_pose.position.y += random.random() * 0.1
         next_pose.position.z += random.random() * 0.1
+        # theta = math.pi/2
+        # next_pose.orientation.x = 0
+        # next_pose.orientation.y = math.sin(theta/2)
+        # next_pose.orientation.z = 0
+        # next_pose.orientation.w = math.cos(theta/2)
         print(next_pose)
         robot.go_to_pose(next_pose)
         time.sleep(2)

@@ -3,7 +3,7 @@ from quadrillion_test import *
 from moveit_test import MoveGroupPythonInteface
 from control_msgs.msg import JointTrajectoryControllerState
 from std_msgs.msg import Float64
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import PoseStamped, Pose, Quaternion
 import copy
 from enum import Enum
 from ur5eIKFast import ur5e_ik_fast
@@ -114,6 +114,9 @@ class MyRobotPlanner:
         start_point.time_from_start = rospy.Duration.from_sec(0)
 
         goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
+        # print("solutions are")
+        # for solution in goal_point_ik_joint_space:
+        #     print(solution)
         if not goal_point_ik_joint_space:
             print("out of range")
             return
@@ -124,10 +127,11 @@ class MyRobotPlanner:
         complete_point(goal_point)
         time_to_goal = goal_pose.header.stamp - rospy.Time.now()
         print("try to catch it in ", time_to_goal.to_sec())
+        #print("best solution is", best_solution)
         if time_to_goal.to_sec() < 0:
             time_to_goal = default_duration
 
-        goal_point.time_from_start = time_to_goal
+        goal_point.time_from_start = 0.7*time_to_goal
 
         # print(goal_point)
         traj, _ = traj_generate_with_two_points(start_point, goal_point)
@@ -168,12 +172,16 @@ def nearer_position(start_position, goal_position):
 def best_ik_solution(start_position, ik_solutions):
     weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
     distance = []
-    for ik_solution in ik_solutions:
-        nearer_ik_solution = nearer_position(start_position, ik_solution)
-        # print("nearer_ik_solution")
-        # print(nearer_ik_solution)
+    for ind in range(len(ik_solutions)):
+        ik_solutions[ind] = nearer_position(start_position, ik_solutions[ind])
         distance.append(np.dot(weight,
-                               np.abs(np.array(start_position) - np.array(nearer_ik_solution))))
+                               np.abs(np.array(start_position) - np.array(ik_solutions[ind]))))
+    # for ik_solution in ik_solutions:
+    #     #nearer_ik_solution = nearer_position(start_position, ik_solution)
+    #     # print("nearer_ik_solution")
+    #     # print(nearer_ik_solution)
+    #     distance.append(np.dot(weight,
+    #                            np.abs(np.array(start_position) - np.array(ik_solution))))
 
     min_dis_ind = distance.index(min(distance))
     return ik_solutions[min_dis_ind]
@@ -181,13 +189,13 @@ def best_ik_solution(start_position, ik_solutions):
 
 if __name__ == '__main__':
     rospy.init_node('my_controller', anonymous=True, disable_signals=True)
-    simulation = True
+    simulation = False
     if simulation:
         topic_command = '/arm_controller/command'
         topic_state = '/arm_controller/state'
     else:
         topic_command = '/scaled_pos_traj_controller/command'
-        topic_state = 'scaled_pos_traj_controller/state'
+        topic_state = '/scaled_pos_traj_controller/state'
 
     control_mode = ControlMode.ikfast
     my_robot_planner = MyRobotPlanner(topic_command=topic_command, topic_state=topic_state, control_mode=control_mode)
