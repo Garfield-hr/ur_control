@@ -3,15 +3,22 @@
 from Pre_n_move import *
 from my_ur_planner import *
 import sympy as sp
-
+import sys
+from tf.transformations import quaternion_matrix
 
 def pre_part():
-    global seq
+    global seq , tcatch, theta, min_distance, last_length
     goal_pose = PoseStamped()
     rospy.wait_for_service('Ring_Information')
     get_camera_result = rospy.ServiceProxy('Ring_Information', ring_Info)
     result = get_camera_result(0)
     print (len(result.Ringposes))
+    if len(result.Ringposes)<last_length:
+        min_distance=sys.maxint
+        print("New trun is starting.")
+    else:
+        last_length=len(result.Ringposes)
+
 
     if len(result.Ringposes) > 20:
 
@@ -27,40 +34,59 @@ def pre_part():
             print ('cannot catch')
             return
         else:
-            #tcatch = catch_point_least_cartesian_distance(t1, t2, theta)
-            tcatch = catch_point_least_joint_pace_distance(t1, t2, theta)
+            tcatch,distance = catch_point_least_cartesian_distance(t1, t2, theta)
+            #tcatch,distance = catch_point_least_joint_pace_distance(t2, t1, theta)
+            if distance<min_distance:
+                min_distance=distance
 
-            # tcatch = (t1 + t2) / 2
-            # print ("tcatch = %s" % tcatch)
-            catch_position = time_to_loc(theta, tcatch)
-            result_location.append(catch_position)
-            catch_orientation = solve_orientation_from_v(cal_velocity_vector(theta, tcatch))
-            #
-            # print ("Planed catching location = (%s, %s, %s)" % catch_position)
-            deltax = -0.2
-            deltay = -0.0
-            goal_pose.pose.position.x = catch_position[0] - 0.5 + deltax  # rviz transformation
-            goal_pose.pose.position.y = catch_position[1] + deltay
-            goal_pose.pose.position.z = catch_position[2]
 
-            goal_pose.pose.orientation.x = catch_orientation[0]
-            goal_pose.pose.orientation.y = catch_orientation[1]  # -math.sin(math.pi/4)
-            goal_pose.pose.orientation.z = catch_orientation[2]  # 0.0
-            goal_pose.pose.orientation.w = catch_orientation[3]  # math.cos(math.pi/4)
 
-            goal_pose.header.seq = seq
-            goal_pose.header.stamp = rospy.Time.from_sec(tcatch + result.Timepoints[0].stamp.to_sec())
+                #tcatch = catch_point_least_joint_pace_distance(t2, t1, theta)
+                print('tcatch is ', tcatch)
 
-            goal_pose.header.frame_id = 'my_planner'
+                # tcatch = (t1 + t2) / 2
+                # print ("tcatch = %s" % tcatch)
+                catch_position = time_to_loc(theta, tcatch)
+                result_location.append(catch_position)
+                catch_orientation = solve_orientation_from_v(cal_velocity_vector(theta, tcatch))
+                #
+                # print ("Planed catching location = (%s, %s, %s)" % catch_position)
+                rotation_matrix = quaternion_matrix(catch_orientation)
 
-            seq = seq + 1
+                deltax = -0.0
+                deltay = -0.0
+                goal_pose.pose.position.x = catch_position[0] - 0.13*rotation_matrix[0, 2] - 0.5 + deltax  # rviz transformation
+                goal_pose.pose.position.y = catch_position[1] - 0.13*rotation_matrix[1, 2] + deltay
+                goal_pose.pose.position.z = catch_position[2] - 0.13*rotation_matrix[2, 2]
 
-        np.save('/home/liangxiao/camera_result.npy', PoseSet)
-        np.save('/home/liangxiao/time_result.npy', TimeSet)
-        xxx = np.array(result_location)
-        #print (xxx.shape)
-        np.save('/home/liangxiao/location_result.npy', xxx)
-        return goal_pose
+                goal_pose.pose.orientation.x = catch_orientation[0]
+                goal_pose.pose.orientation.y = catch_orientation[1]  # -math.sin(math.pi/4)
+                goal_pose.pose.orientation.z = catch_orientation[2]  # 0.0
+                goal_pose.pose.orientation.w = catch_orientation[3]  # math.cos(math.pi/4)
+
+                goal_pose.header.seq = seq
+                goal_pose.header.stamp = rospy.Time.from_sec(tcatch + result.Timepoints[0].stamp.to_sec())
+
+                goal_pose.header.frame_id = 'my_planner'
+
+                seq = seq + 1
+                np.save('/home/liangxiao/camera_result.npy', PoseSet)
+                np.save('/home/liangxiao/time_result.npy', TimeSet)
+                xxx = np.array(result_location)
+                # print (xxx.shape)
+                np.save('/home/liangxiao/location_result.npy', xxx)
+                return goal_pose
+            else:
+                print ('Distance is not decreasing')
+                np.save('/home/liangxiao/camera_result.npy', PoseSet)
+                np.save('/home/liangxiao/time_result.npy', TimeSet)
+                xxx = np.array(result_location)
+                # print (xxx.shape)
+                np.save('/home/liangxiao/location_result.npy', xxx)
+                return
+
+
+
     else:
         print ('No data received')
 
@@ -106,19 +132,16 @@ def catch_point_least_cartesian_distance(t1, t2, theta):
 
     least_index = distance.index(min(distance))
     tcatch = t_least_distance[least_index]
-    return tcatch
+    return tcatch,min(distance)
 
 
 def catch_point_least_joint_pace_distance(t1, t2, theta):
     # sampling
-    time_resolution = 0.01
-    joint_value_list = []
-    t_catch = 0
+    t_catch = -1
     min_distance = -1
-    for i in range(int((t2-t1)/time_resolution) + 1):
-        time_i = t1 + i*time_resolution
-        if time_i > t2:
-            time_i = t2
+    sample_num=10
+    for i in range(sample_num+1):
+        time_i = t1 + i*(t2-t1)/(sample_num+1)
         pose = Pose()
         position = time_to_loc(theta, time_i)  # (x, y, z)
         velocity = cal_velocity_vector(theta, time_i)
@@ -131,15 +154,18 @@ def catch_point_least_joint_pace_distance(t1, t2, theta):
         pose.orientation.z = orientation[2]
         pose.orientation.w = orientation[3]
         joint_values = ur5e_ik_fast(pose)
+        if not joint_values:
+            continue
         distance = best_ik_solution(my_robot_planner.robot_monitor.joint_point.positions,
                                        joint_values, return_distance=True)
         if (distance < min_distance) or (min_distance == -1):
             min_distance = distance
             t_catch = time_i
+            print("get one", t_catch)
     # this funct has solved the best joint space value
     # return time result calculation
     # but this can let the code keep the same logic
-    return t_catch
+    return t_catch,min_distance
 
 
 if __name__ == '__main__':
@@ -151,6 +177,12 @@ if __name__ == '__main__':
 
     result_location = []
     seq = 1
+
+
+    tcatch=0
+    theta=[]
+    min_distance=sys.maxint
+    last_length=0
 
     topic_command = '/scaled_pos_traj_controller/command'
     topic_state = '/scaled_pos_traj_controller/state'
@@ -165,5 +197,3 @@ if __name__ == '__main__':
         if catch_pose_stamped:
             print("get a catch pose")
             my_robot_planner.control_using_ikfast(catch_pose_stamped)
-
-

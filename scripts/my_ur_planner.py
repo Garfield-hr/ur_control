@@ -170,8 +170,10 @@ def nearer_position(start_position, goal_position):
 
 
 def best_ik_solution(start_position, ik_solutions, return_distance=False):
-    weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    weight = np.array([1.0, 1.0, 1.0, 5.0, 5.0, 5.0])
     distance = []
+    if not ik_solutions:
+        print('no ik solutions input')
     for ind in range(len(ik_solutions)):
         ik_solutions[ind] = nearer_position(start_position, ik_solutions[ind])
         distance.append(np.dot(weight,
