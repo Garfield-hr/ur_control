@@ -105,14 +105,12 @@ class MyRobotPlanner:
         # self.modify_time(plan.joint_trajectory.points)
         # self.pub.publish(plan.joint_trajectory)
 
-    def control_using_ikfast(self, goal_pose):
+    def control_using_ikfast(self, goal_pose, velocity=()):
         default_duration = rospy.Duration.from_sec(0.1)
         print("get a catch point, the position is ", goal_pose.pose)
-
         start_point = self.robot_monitor.joint_point
         complete_point(start_point)
         start_point.time_from_start = rospy.Duration.from_sec(0)
-
         goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
         # print("solutions are")
         # for solution in goal_point_ik_joint_space:
@@ -120,21 +118,32 @@ class MyRobotPlanner:
         if not goal_point_ik_joint_space:
             print("out of range")
             return
-
         best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
         goal_point = JointTrajectoryPoint()
         goal_point.positions = best_solution
         complete_point(goal_point)
         time_to_goal = goal_pose.header.stamp - rospy.Time.now()
         print("try to catch it in ", time_to_goal.to_sec())
-        #print("best solution is", best_solution)
+        # print("best solution is", best_solution)
         if time_to_goal.to_sec() < 0:
             time_to_goal = default_duration
-
-        goal_point.time_from_start = 0.7*time_to_goal
-
+        goal_point.time_from_start = 0.7 * time_to_goal
         # print(goal_point)
         traj, _ = traj_generate_with_two_points(start_point, goal_point)
+        if velocity:
+            back_pose = goal_pose
+            velocity_norm = (velocity[0] ** 2 + velocity[1] ** 2 + velocity[2] ** 2) ** 0.5
+            back_pose.pose.position.x = 0.1 * velocity[0] / velocity_norm
+            back_pose.pose.position.y = 0.1 * velocity[1] / velocity_norm
+            back_pose.pose.position.z = 0.1 * velocity[2] / velocity_norm
+            back_point_ik_solutions = ur5e_ik_fast(back_pose.pose)
+            if back_point_ik_solutions:
+                best_back_point_ik_solution = best_ik_solution(goal_point.positions, back_point_ik_solutions)
+                back_point = JointTrajectoryPoint()
+                back_point.positions = best_back_point_ik_solution
+                back_point.time_from_start = rospy.Duration.from_sec(0.2) + goal_point.time_from_start
+                traj.points.append(back_point)
+
         self.pub.publish(traj)
         self.pub_map.publish(self.robot_monitor.joint_point.positions[0])
 

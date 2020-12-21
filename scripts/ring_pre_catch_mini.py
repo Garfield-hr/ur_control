@@ -38,9 +38,6 @@ def pre_part():
             #tcatch,distance = catch_point_least_joint_pace_distance(t2, t1, theta)
             if distance<min_distance:
                 min_distance=distance
-
-
-
                 #tcatch = catch_point_least_joint_pace_distance(t2, t1, theta)
                 print('tcatch is ', tcatch)
 
@@ -75,7 +72,8 @@ def pre_part():
                 xxx = np.array(result_location)
                 # print (xxx.shape)
                 np.save('/home/liangxiao/location_result.npy', xxx)
-                return goal_pose
+                velocity = cal_velocity_vector(theta, tcatch)
+                return goal_pose, velocity
             else:
                 print ('Distance is not decreasing')
                 np.save('/home/liangxiao/camera_result.npy', PoseSet)
@@ -178,14 +176,18 @@ if __name__ == '__main__':
     result_location = []
     seq = 1
 
-
     tcatch=0
     theta=[]
     min_distance=sys.maxint
     last_length=0
 
-    topic_command = '/scaled_pos_traj_controller/command'
-    topic_state = '/scaled_pos_traj_controller/state'
+    simulation_flag = False
+    if simulation_flag:
+        topic_command = '/arm_controller/command'
+        topic_state = '/arm_controller/state'
+    else:
+        topic_command = '/scaled_pos_traj_controller/command'
+        topic_state = '/scaled_pos_traj_controller/state'
     control_mode = ControlMode.ikfast
     my_robot_planner = MyRobotPlanner(topic_command=topic_command,
                                       topic_state=topic_state, control_mode=control_mode)
@@ -193,7 +195,7 @@ if __name__ == '__main__':
     raw_input()
 
     while True:
-        catch_pose_stamped = pre_part()
+        catch_pose_stamped, velocity = pre_part()
         if catch_pose_stamped:
             print("get a catch pose")
-            my_robot_planner.control_using_ikfast(catch_pose_stamped)
+            my_robot_planner.control_using_ikfast(catch_pose_stamped, velocity=velocity)

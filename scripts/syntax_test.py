@@ -23,8 +23,11 @@ class ResultHandler:
 def add(x, y):
     return x + y
 
-robot = MoveGroupPythonInteface()
-goal = (-0.4, -1.0, 1.8, 0, 1.2, 3.1)
-robot.group.set_joint_value_target(goal)
-plan = robot.group.plan()
-print(type(plan))
+
+def test_func(velocity=()):
+    print("test function is running")
+    if velocity:
+        print("velocity is", velocity)
+
+
+test_func((1,2,3))
