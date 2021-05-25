@@ -30,4 +30,6 @@ def test_func(velocity=()):
         print("velocity is", velocity)
 
 
-test_func((1,2,3))
+a = [i/10.0 for i in range(10)]
+for i in a:
+    print i

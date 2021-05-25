@@ -15,7 +15,7 @@ from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 
-from ring_predict.srv import *
+#from ring_predict.srv import *
 from moveit_msgs.msg import RobotTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 import tf
@@ -242,12 +242,12 @@ def solve_time_start(theta, robot_loc, robot_range): #input theta robot_location
 
 def solve_time_period(theta, robot_loc, robot_range):
     timemax = solve_time_max(theta)
-    print (timemax)
+    # print (timemax)
     if timemax == -1:
         print('wrong timemax')
         return -1, -1
     interresult = solve_time_start(theta=theta, robot_loc=robot_loc, robot_range=robot_range)
-    print (interresult)
+    #print (interresult)
     if len(interresult) == 0:
         print ('no interception')
         return -1, -1
@@ -269,7 +269,7 @@ def solve_time_period2(theta, robot_loc, robot_range, zcatch):
         return -1
     else:
         position = time_to_loc(theta, t[0])
-        print (position)
+        #print (position)
         rangeflag = (position[0] - robot_loc[0])*(position[0] - robot_loc[0]) + (position[1] - robot_loc[1])*(position[1] - robot_loc[1]) + (position[2] - robot_loc[2])*(position[2] - robot_loc[2]) - robot_range* robot_range
         if rangeflag > 0:
             print ("out of range")

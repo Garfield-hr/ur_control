@@ -47,7 +47,7 @@ class RobotStateMonitor:
 
 class MyRobotPlanner:
 
-    def __init__(self, topic_command='/arm_controller/command', topic_state='/arm_controller/state', control_mode=ControlMode.my_ur_ik):
+    def __init__(self, topic_command='/arm_controller/command', topic_state='/arm_controller/state', control_mode=ControlMode.ikfast):
         self.robot = MoveGroupPythonInteface()
         self.pub = rospy.Publisher(topic_command, JointTrajectory, queue_size=10)
         self.pub_map = rospy.Publisher('joint1_state', Float64, queue_size=10)
@@ -106,6 +106,7 @@ class MyRobotPlanner:
         # self.pub.publish(plan.joint_trajectory)
 
     def control_using_ikfast(self, goal_pose, velocity=()):
+        velocity = (0, 0, -1)
         default_duration = rospy.Duration.from_sec(0.1)
         print("get a catch point, the position is ", goal_pose.pose)
         start_point = self.robot_monitor.joint_point
@@ -202,7 +203,7 @@ def best_ik_solution(start_position, ik_solutions, return_distance=False):
 
 if __name__ == '__main__':
     rospy.init_node('my_controller', anonymous=True, disable_signals=True)
-    simulation = False
+    simulation = True
     if simulation:
         topic_command = '/arm_controller/command'
         topic_state = '/arm_controller/state'

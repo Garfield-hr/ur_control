@@ -90,19 +90,25 @@ def pre_part():
 
 
 def distance_with_ee(t, theta):
-    current_pose = my_robot_planner.robot.group.get_current_pose()
-    x = current_pose.pose.position.x
-    y = current_pose.pose.position.y
-    z = current_pose.pose.position.z
+    # current_pose = my_robot_planner.robot.group.get_current_pose()
+    # x = current_pose.pose.position.x
+    # y = current_pose.pose.position.y
+    # z = current_pose.pose.position.z
+    x = 0.3
+    y = -0.2
+    z = 0.5
     t_position = time_to_loc(theta, t)
     return (t_position[0] - x)**2 + (t_position[1] - y)**2 + (t_position[2] - z)**2
 
 
 def get_nearest_position_time(theta, t_start, t_end):
-    current_pose = my_robot_planner.robot.group.get_current_pose()
-    x = current_pose.pose.position.x
-    y = current_pose.pose.position.y
-    z = current_pose.pose.position.z
+    # current_pose = my_robot_planner.robot.group.get_current_pose()
+    # x = current_pose.pose.position.x
+    # y = current_pose.pose.position.y
+    # z = current_pose.pose.position.z
+    x = 0.3
+    y = -0.2
+    z = 0.5
     a = 48.2
     b = 14.7*theta[5]
     c = theta[5]**2 + 9.8*theta[4] + theta[1]**2 + theta[3]**2 - 9.8*z
