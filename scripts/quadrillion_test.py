@@ -30,7 +30,7 @@ def point_interpolation_fifth(para_list, ti):
 def traj_generate_with_two_points(joint_point_start, joint_point_goal, deltaT=0.2, interpolation=True):
     # joint_point_start, joint_point_goal = jointPoint
     # initialize trajectory message
-    interpolation = False
+    # interpolation = False
     traj = JointTrajectory()
     traj.header.stamp = rospy.Time.now()
     traj.header.frame_id = "world"  # replace this

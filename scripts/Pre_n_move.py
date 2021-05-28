@@ -1,29 +1,25 @@
 #!/usr/bin/python2
 
 import rospy
-
 import numpy as np
 import math
 from sklearn.linear_model import LinearRegression
 import sys
 import copy
-
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
-
 #from ring_predict.srv import *
 from moveit_msgs.msg import RobotTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 import tf
-
 from geometry_msgs.msg import PoseStamped
 
 
-def get_pre_param(position_set, time_series): #input position array, return x = a0 + a1*t y = a2 + a3*t z = a4 + a5*t + a6*t*t
+def get_pre_param(position_set, time_series): ## no assumption of g #input position array, return x = a0 + a1*t y = a2 + a3*t z = a4 + a5*t + a6*t*t
     time = time_series.reshape(-1, 1)
     positionx = position_set[:, 0].reshape(-1, 1)
     positiony = position_set[:, 1].reshape(-1, 1)
@@ -49,7 +45,7 @@ def get_pre_param(position_set, time_series): #input position array, return x = 
 
     return a0, a1, a2, a3, a4, a5, a6
 
-def get_pre_param2(position_set, time_series): #input position array, return x = a0 + a1*t y = a2 + a3*t z = a4 + a5*t + a6*t*t
+def get_pre_param2(position_set, time_series): ## assume g=9.8 #input position array, return x = a0 + a1*t y = a2 + a3*t z = a4 + a5*t + a6*t*t
     time = time_series.reshape(-1, 1)
     positionx = position_set[:, 0].reshape(-1, 1)
     positiony = position_set[:, 1].reshape(-1, 1)
@@ -206,7 +202,7 @@ def cal_quartic_ik(args_list):
                 print (" two pairs imaginary ")
                 return 0, 0
 
-def solve_time_start(theta, robot_loc, robot_range): #input theta robot_location, robot_reach return possible timeset
+def solve_time_start(theta, robot_loc, robot_range): #reach radius input theta robot_location, robot_reach return possible timeset
     a0 = theta[0]
     a1 = theta[1]
     a2 = theta[2]
@@ -238,9 +234,7 @@ def solve_time_start(theta, robot_loc, robot_range): #input theta robot_location
         #timeset = np.ceil(timeset)
         return timeset
 
-
-
-def solve_time_period(theta, robot_loc, robot_range):
+def solve_time_period(theta, robot_loc, robot_range):   #### reach a height and a sphere radius
     timemax = solve_time_max(theta)
     # print (timemax)
     if timemax == -1:
@@ -262,7 +256,7 @@ def solve_time_period(theta, robot_loc, robot_range):
         t2 = timeset[1]
         return t1, t2
 
-def solve_time_period2(theta, robot_loc, robot_range, zcatch):
+def solve_time_period2(theta, robot_loc, robot_range, zcatch):  ### reach certain height
     t = solve_second_order(theta[6], theta[5], theta[4] - zcatch)
     if t == -1:
         print ("trajectory too low")
@@ -277,7 +271,7 @@ def solve_time_period2(theta, robot_loc, robot_range, zcatch):
         else:
             return t[0]
 
-def solve_time_period3(theta, robot_loc, robot_range, catch_ratio=0.75):
+def solve_time_period3(theta, robot_loc, robot_range, catch_ratio=0.75):  ### reach certain radius with a ratio
     interresult = solve_time_start(theta=theta, robot_loc=robot_loc, robot_range=robot_range*catch_ratio)
     if len(interresult) == 0:
         print ('no interception')
@@ -533,8 +527,6 @@ class MoveGroupPythonInteface(object):
     new_traj.joint_trajectory.points = points
 
     group.execute(new_traj, wait=True)
-
-
 
 
 def Poses_to_nparray(Posesarray):

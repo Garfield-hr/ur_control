@@ -101,14 +101,14 @@ def distance_with_ee(t, theta):
     return (t_position[0] - x)**2 + (t_position[1] - y)**2 + (t_position[2] - z)**2
 
 
-def get_nearest_position_time(theta, t_start, t_end):
+def get_nearest_position_time(theta, t_start, t_end, position):
     # current_pose = my_robot_planner.robot.group.get_current_pose()
     # x = current_pose.pose.position.x
     # y = current_pose.pose.position.y
     # z = current_pose.pose.position.z
-    x = 0.3
-    y = -0.2
-    z = 0.5
+    x = position[0]
+    y = position[1]
+    z = position[2]
     a = 48.2
     b = 14.7*theta[5]
     c = theta[5]**2 + 9.8*theta[4] + theta[1]**2 + theta[3]**2 - 9.8*z
@@ -126,9 +126,9 @@ def get_nearest_position_time(theta, t_start, t_end):
     return result
 
 
-def catch_point_least_cartesian_distance(t1, t2, theta):
+def catch_point_least_cartesian_distance(t1, t2, theta, position=[0.7, 0.0, 0.0]):
     distance = []
-    t_least_distance = get_nearest_position_time(theta, t2, t1)
+    t_least_distance = get_nearest_position_time(theta, t2, t1, position)
     t_least_distance.append(t1)
     t_least_distance.append(t2)
     for ti in t_least_distance:
@@ -136,7 +136,7 @@ def catch_point_least_cartesian_distance(t1, t2, theta):
 
     least_index = distance.index(min(distance))
     tcatch = t_least_distance[least_index]
-    return tcatch,min(distance)
+    return tcatch, min(distance)
 
 
 def catch_point_least_joint_pace_distance(t1, t2, theta):
@@ -175,7 +175,7 @@ def catch_point_least_joint_pace_distance(t1, t2, theta):
 if __name__ == '__main__':
 
     # initialization
-    robot_location = (0.505, 0.0, 0.0)  # ji de gai
+    robot_location = (0.505, 0.0, 0.0)  # pay attention to this setting!!!
     robot_reach = 1.0
     rospy.init_node('planner', anonymous=True)
 

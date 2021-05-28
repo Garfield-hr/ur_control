@@ -11,7 +11,7 @@ def ur5e_ik_fast(pose):
     rot_mat[0][3] = pose.position.x
     rot_mat[1][3] = pose.position.y
     rot_mat[2][3] = pose.position.z
-    ur5e_ik_fast_dir = '/home/liangxiao/catkin_ws/src/UR5e_ikfast_plugin/src/ur5eIK'
+    ur5e_ik_fast_dir = '/home/hairui/catkin_ws/src/UR5e_ikfast_plugin/src/ur5eIK'
     cmd = [ur5e_ik_fast_dir]
     for i in range(3):
         for j in range(4):
@@ -26,7 +26,7 @@ def ur5e_ik_fast(pose):
         return []
 
     out_text = out_bytes.decode('utf-8')
-    print(out_text)
+    # print(out_text)
     out_lines = out_text.split('\n')
     result = []
     for ind in range(1, len(out_lines)-1):
@@ -76,6 +76,7 @@ if __name__ == '__main__':
     print("for pose")
     print(pose1)
     ik_solutions = ur5e_ik_fast(pose1)
+
 
 
 

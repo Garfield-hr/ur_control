@@ -45,7 +45,7 @@ class RobotStateMonitor:
         self.joint_point = data.actual
 
 
-class MyRobotPlanner:
+class MyRobotPlanner(object):
 
     def __init__(self, topic_command='/arm_controller/command', topic_state='/arm_controller/state', control_mode=ControlMode.ikfast):
         self.robot = MoveGroupPythonInteface()
