@@ -112,9 +112,7 @@ class MyRobotPlanner(object):
         start_point = self.robot_monitor.joint_point
         complete_point(start_point)
         start_point.time_from_start = rospy.Duration.from_sec(0)
-        if isinstance(goal_pose, PoseStamped):
-            goal_pose = goal_pose.pose
-        goal_point_ik_joint_space = ur5e_ik_fast(goal_pose)
+        goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
         # print("solutions are")
         # for solution in goal_point_ik_joint_space:
         #     print(solution)
