@@ -1,5 +1,11 @@
-from ur5eIKFast import ur5e_ik_fast
-from geometry_msgs.msg import Pose
+class A:
+    def __init__(self):
+        self.a = 1
+        self.b = 2
 
-a = [[1, 2], [3, 4]]
-print(a[0, 0])
+    def output(self):
+        print('a, b is ', self.a, self.b)
+
+a = A()
+[a.a, a.b] = [1,2]
+a.output()

@@ -108,11 +108,13 @@ class MyRobotPlanner(object):
     def control_using_ikfast(self, goal_pose, velocity=()):
         velocity = (0, 0, -1)
         default_duration = rospy.Duration.from_sec(0.1)
-        print("get a catch point, the position is ", goal_pose.pose)
+        # print("get a catch point, the position is ", goal_pose.pose)
         start_point = self.robot_monitor.joint_point
         complete_point(start_point)
         start_point.time_from_start = rospy.Duration.from_sec(0)
-        goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
+        if isinstance(goal_pose, PoseStamped):
+            goal_pose = goal_pose.pose
+        goal_point_ik_joint_space = ur5e_ik_fast(goal_pose)
         # print("solutions are")
         # for solution in goal_point_ik_joint_space:
         #     print(solution)
