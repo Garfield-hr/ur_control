@@ -15,7 +15,7 @@ class FeedbackPouringControl:
         self.robot_init_orientation = robot_init_pose.orientation
         self.max_height = geometry_parameter[0]
         self.cup_radius = geometry_parameter[1]
-        self.angle = math.pi/6
+        self.angle = math.pi/12
         self.robot = robot
 
     def ratio_diff2height(self, ratio_diff):
