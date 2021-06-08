@@ -9,6 +9,7 @@ import rospy
 class FeedbackPouringControl:
 
     # robot_initial_position: pose; geometry_parameter: [h, r]
+    # ratio is beer to all and become larger in slight mode
     def __init__(self, robot, robot_init_pose, geometry_parameter):
         self.robot_init_pose = robot_init_pose
         self.robot_init_position = robot_init_pose.position
@@ -17,6 +18,9 @@ class FeedbackPouringControl:
         self.cup_radius = geometry_parameter[1]
         self.angle = math.pi/12
         self.robot = robot
+        self.mode = 'violent'
+        self.expected_ratio = 0.5
+        self.allowable_error = 0.1
 
     def ratio_diff2height(self, ratio_diff):
         return 0.5*self.max_height*(ratio_diff + 1)
@@ -25,13 +29,9 @@ class FeedbackPouringControl:
         expected_pose = Pose()
 
         init_ori = quaternion_format_transform(self.robot_init_orientation)
-        print('init_ori', init_ori)
         trans = quaternion_from_euler(-self.angle, 0, 0)
-        print('trans', trans)
-        a = quaternion_multiply(init_ori, trans)
-        print('result', a)
 
-        expected_pose.orientation = quaternion_format_transform(a)
+        expected_pose.orientation = quaternion_format_transform(quaternion_multiply(init_ori, trans))
 
         expected_pose.position.x = self.robot_init_position.x
         expected_pose.position.y = self.robot_init_position.y - height*math.sin(self.angle) + \
@@ -72,6 +72,44 @@ class FeedbackPouringControl:
         else:
             print('no such mode')
 
+    def auto_switch_control(self, ratio, liquid_level=0):
+        if self.mode == 'violent' and ratio < (1 - self.allowable_error)*self.expected_ratio:
+            # too much foam, switch to slight mode
+            height = min(0.09, 0.02+liquid_level)
+            pose = self.height2pose(height)
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            goal_pose.pose = pose
+            self.robot.robot.go_to_pose(pose)
+            self.mode = 'slight'
+        elif self.mode == 'slight' and ratio > (1 + self.allowable_error)*self.expected_ratio:
+            # too little foam, switch to violent mode
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            self.robot.control_robot_with_moveit(goal_pose)
+            self.mode = 'violent'
+
+    def ball_control(self, liquid_level):
+        if self.mode == 'slight':
+            return
+        if liquid_level > 0.05:
+            height = min(0.09, 0.02 + liquid_level)
+            pose = self.height2pose(height)
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            goal_pose.pose = pose
+            self.robot.robot.go_to_pose(pose)
+            self.mode = 'slight'
+
 
 def quaternion_format_transform(quat):
     if isinstance(quat, Quaternion):
@@ -83,12 +121,14 @@ def quaternion_format_transform(quat):
     else:
         raise Exception('input type not supported, input type is ', type(quat))
 
+
 def get_command():
     ret = input('input command, \'violent\', \'slight\', \'quit\'')
     while ret not in ['violent', 'slight', 'quit']:
         print('invalid command, retry')
         ret = input('input command, \'violent\', \'slight\', \'quit\'')
     return ret
+
 
 if __name__ == '__main__':
     rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
