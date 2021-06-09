@@ -25,7 +25,7 @@ class VisualMonitor:
 
     def monitor_pouring(self):
         while not self.__stop:
-            self.ratio_list.append(self.cam_roi.get_foam_ratio())
+            self.__ratio_list.append(self.cam_roi.get_foam_ratio(debug=True))
             self.__liquid_level = self.cam_roi.get_liquid_level()
 
     def get_ratio(self):
@@ -37,7 +37,6 @@ class VisualMonitor:
 
     def get_liquid_level(self):
         return self.__liquid_level
-
 
 
 def camera_setting():
@@ -175,10 +174,7 @@ def ball_pouring_control():
 def parallel_ball_pouring_control():
     pouring_control = robot_setting()
     vm = VisualMonitor()
-    try:
-        thread.start_new_thread(vm.monitor_pouring)
-    except:
-        print('Error: unable to start thread')
+    thread.start_new_thread(vm.monitor_pouring, ())
 
     while True:
         try:
@@ -187,8 +183,25 @@ def parallel_ball_pouring_control():
                 liquid_level = pouring_control.max_height * vm.get_liquid_level()
                 pouring_control.ball_control(liquid_level)
         except KeyboardInterrupt as e:
+            print('quit')
+            break
+
+
+def parallel_beer_pouring_control():
+    pouring_control = robot_setting()
+    vm = VisualMonitor()
+    thread.start_new_thread(vm.monitor_pouring, ())
+
+    while True:
+        try:
+            ratio = vm.get_ratio()
+            if isinstance(ratio, float):
+                liquid_level = pouring_control.max_height * vm.get_liquid_level()
+                pouring_control.auto_switch_control(ratio, liquid_level=liquid_level)
+        except KeyboardInterrupt as e:
+            print('quit')
             break
 
 
 if __name__ == '__main__':
-    ball_pouring_control()
+    parallel_beer_pouring_control()
