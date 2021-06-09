@@ -98,7 +98,7 @@ class FeedbackPouringControl:
     def ball_control(self, liquid_level):
         if self.mode == 'slight':
             return
-        if liquid_level > 0.05:
+        if liquid_level > 0.03:
             height = min(0.09, 0.02 + liquid_level)
             pose = self.height2pose(height)
             goal_pose = PoseStamped()

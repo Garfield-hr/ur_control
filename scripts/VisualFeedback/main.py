@@ -18,18 +18,18 @@ cam.open_device()
 
 # settings
 cam.set_imgdataformat('XI_RGB24')
-# cam.set_exposure(792)
-# cam.set_region_selector(0)
-# cam.set_width(1264)
-# cam.set_height(1016)
-# cam.set_gain(15)
+cam.set_exposure(792)
+cam.set_region_selector(0)
+cam.set_width(1264)
+cam.set_height(1016)
+cam.set_gain(15)
 
 # create instance of Image to store image data and metadata
 img = xiapi.Image()
 
 # start data acquisition
 print('Starting data acquisition...')
-#cam.start_acquisition()
+cam.start_acquisition()
 
 white_balance_adjustment(cam)
 print('please adjust camera for pouring measurement')

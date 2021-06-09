@@ -17,10 +17,10 @@ class RoiByFourPoints:
         # initialize 4 points by mouse click
         ret, self.img = self.get_next_image()
         self.height, self.width = self.img.shape[:2]
-        cv.imshow('img', self.img)
-        cv.setMouseCallback('img', self.mouse_event)
+        cv.imshow('image', self.img)
+        cv.setMouseCallback('image', self.mouse_event)
         self.initialize_four_points()
-        cv.destroyWindow('img')
+        cv.destroyWindow('image')
 
     def mouse_event(self, event, x, y, flags, param):
         if event == cv.EVENT_LBUTTONDOWN:
@@ -29,7 +29,7 @@ class RoiByFourPoints:
             cv.circle(self.img, (x, y), 1, (255, 255, 255), thickness=-1)
             cv.putText(self.img, xy, (x, y), cv.FONT_HERSHEY_PLAIN,
                        1.0, (255, 255, 255), thickness=1)
-            cv.imshow('img', self.img)
+            cv.imshow('image', self.img)
 
     def initialize_four_points(self):
         while len(self.points) < 4:

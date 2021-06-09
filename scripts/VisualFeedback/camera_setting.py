@@ -15,24 +15,24 @@ def white_balance_adjustment(cam):
     adjust_camera(cam)
     cam.set_param(xiapi.XI_PRM_MANUAL_WB, 1)
     print('is the image corrected? esc to continue')
-    adjust_camera(cam)
 
 
-cam = xiapi.Camera()
-# start communication
-print('Opening first camera...')
-cam.open_device()
+if __name__ == '__main__':
+    cam = xiapi.Camera()
+    # start communication
+    print('Opening first camera...')
+    cam.open_device()
 
-# settings
-cam.set_imgdataformat('XI_RGB24')
-cam.set_exposure(792)
-cam.set_region_selector(0)
-cam.set_width(640)
-cam.set_height(600)
-cam.set_gain(15)
-img = xiapi.Image()
+    # settings
+    cam.set_imgdataformat('XI_RGB24')
+    cam.set_exposure(792)
+    cam.set_region_selector(0)
+    cam.set_width(640)
+    cam.set_height(600)
+    cam.set_gain(15)
+    img = xiapi.Image()
 
-# start data acquisition
-print('Starting data acquisition...')
-cam.start_acquisition()
+    # start data acquisition
+    print('Starting data acquisition...')
+    cam.start_acquisition()
 

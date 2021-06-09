@@ -6,9 +6,10 @@ from VisualFeedback.camera_setting import white_balance_adjustment
 import rospy
 
 
-def func1():
+def beer_switch_control():
     # robot setting
     def robot_setting():
+        print('start robot setting')
         rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
         simulation_flag = False
         if simulation_flag:
@@ -24,6 +25,7 @@ def func1():
         pouring_control = FeedbackPouringControl(my_robot_planner, current_pose, [0.11, 0.03])
         print("robot ready to receive command")
         return pouring_control
+
     pouring_control = robot_setting()
 
     # camera setting
@@ -35,11 +37,11 @@ def func1():
 
         # settings
         cam.set_imgdataformat('XI_RGB24')
-        # cam.set_exposure(792)
-        # cam.set_region_selector(0)
-        # cam.set_width(1264)
-        # cam.set_height(1016)
-        # cam.set_gain(15)
+        cam.set_exposure(792)
+        cam.set_region_selector(0)
+        # cam.set_width(400)
+        # cam.set_height(640)
+        cam.set_gain(15)
 
         # create instance of Image to store image data and metadata
         img = xiapi.Image()
@@ -47,23 +49,26 @@ def func1():
         # start data acquisition
         print('Starting data acquisition...')
 
-        # cam.start_acquisition()
+        cam.start_acquisition()
 
         def adjust_camera():
             image = xiapi.Image()
             while cv.waitKey(33) != 27:
-                cam.get_image(img)
+                cam.get_image(image)
                 data = image.get_image_data_numpy()
                 cv.imshow("img", data)
 
         white_balance_adjustment(cam)
         print('please adjust camera for pouring measurement')
-        adjust_camera(cam)
+        adjust_camera()
+        cv.destroyAllWindows()
         return cam
+
     cam = camera_setting()
 
     def read_img():
-        image = cam.get_image()
+        image = xiapi.Image()
+        cam.get_image(image)
         image_np = image.get_image_data_numpy()
         return True, image_np
     cam_roi = vf.RoiByFourPoints(read_img)
@@ -73,7 +78,7 @@ def func1():
         try:
             ratio = 0
             for i in range(n):
-                ratio += cam_roi.get_foam_ratio()
+                ratio += cam_roi.get_foam_ratio(debug=True)
             ratio /= n
             liquid_level = pouring_control.max_height*cam_roi.get_liquid_level()
             pouring_control.auto_switch_control(ratio, liquid_level=liquid_level)
@@ -85,6 +90,7 @@ def ball_pouring_control():
     # change to slight mode when ball full half of the cup
     # robot setting
     def robot_setting():
+        print('start robot setting')
         rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
         simulation_flag = False
         if simulation_flag:
@@ -112,11 +118,11 @@ def ball_pouring_control():
 
         # settings
         cam.set_imgdataformat('XI_RGB24')
-        # cam.set_exposure(792)
-        # cam.set_region_selector(0)
-        # cam.set_width(1264)
-        # cam.set_height(1016)
-        # cam.set_gain(15)
+        cam.set_exposure(792)
+        cam.set_region_selector(0)
+        # cam.set_width(400)
+        # cam.set_height(640)
+        cam.set_gain(15)
 
         # create instance of Image to store image data and metadata
         img = xiapi.Image()
@@ -124,24 +130,26 @@ def ball_pouring_control():
         # start data acquisition
         print('Starting data acquisition...')
 
-        # cam.start_acquisition()
+        cam.start_acquisition()
 
         def adjust_camera():
             image = xiapi.Image()
             while cv.waitKey(33) != 27:
-                cam.get_image(img)
+                cam.get_image(image)
                 data = image.get_image_data_numpy()
                 cv.imshow("img", data)
 
         white_balance_adjustment(cam)
         print('please adjust camera for pouring measurement')
-        adjust_camera(cam)
+        adjust_camera()
+        cv.destroyAllWindows()
         return cam
 
     cam = camera_setting()
 
     def read_img():
-        image = cam.get_image()
+        image = xiapi.Image()
+        cam.get_image(image)
         image_np = image.get_image_data_numpy()
         return True, image_np
 
@@ -152,15 +160,15 @@ def ball_pouring_control():
         try:
             ratio = 0
             for i in range(n):
-                ratio += cam_roi.get_foam_ratio()
+                ratio += cam_roi.get_foam_ratio(debug=True)
             ratio /= n
             liquid_level = pouring_control.max_height * cam_roi.get_liquid_level()
             pouring_control.ball_control(liquid_level)
+            # if pouring_control.mode == 'slight':
+            #     break
         except KeyboardInterrupt as e:
             break
 
 
-
-
 if __name__ == '__main__':
-    pass
+    ball_pouring_control()
