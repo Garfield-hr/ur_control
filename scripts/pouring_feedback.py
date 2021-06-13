@@ -10,10 +10,7 @@ class FeedbackPouringControl:
 
     # robot_initial_position: pose; geometry_parameter: [h, r]
     # ratio is beer to all and become larger in slight mode
-    def __init__(self, robot, robot_init_pose, geometry_parameter):
-        self.robot_init_pose = robot_init_pose
-        self.robot_init_position = robot_init_pose.position
-        self.robot_init_orientation = robot_init_pose.orientation
+    def __init__(self, robot, geometry_parameter):
         self.max_height = geometry_parameter[0]
         self.cup_radius = geometry_parameter[1]
         self.angle = math.pi/12
@@ -21,6 +18,26 @@ class FeedbackPouringControl:
         self.mode = 'violent'
         self.expected_ratio = 0.5
         self.allowable_error = 0.1
+        self.go_home()
+
+    def go_home(self):
+        goal_pose = PoseStamped()
+        goal_pose.header.seq = 1
+        goal_pose.header.stamp = rospy.Time.from_sec(5)
+        goal_pose.header.frame_id = 'my_planner'
+
+        goal_pose.pose.position.x = 0.466
+        goal_pose.pose.position.y = 0.1
+        goal_pose.pose.position.z = 0.736
+        goal_pose.pose.orientation.x = 0
+        goal_pose.pose.orientation.y = 0
+        goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
+        goal_pose.pose.orientation.w = math.cos(math.pi / 4)
+        self.robot.control_using_ikfast(goal_pose)
+        self.robot_init_pose = goal_pose.pose
+        self.robot_init_position = self.robot_init_pose.position
+        self.robot_init_orientation = self.robot_init_pose.orientation
+        print('reach home')
 
     def ratio_diff2height(self, ratio_diff):
         return 0.5*self.max_height*(ratio_diff + 1)
@@ -29,7 +46,7 @@ class FeedbackPouringControl:
         expected_pose = Pose()
 
         init_ori = quaternion_format_transform(self.robot_init_orientation)
-        trans = quaternion_from_euler(-self.angle, 0, 0)
+        trans = quaternion_from_euler(0, -self.angle, 0)
 
         expected_pose.orientation = quaternion_format_transform(quaternion_multiply(init_ori, trans))
 
@@ -55,20 +72,24 @@ class FeedbackPouringControl:
         if mode == 'violent':
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
-            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.stamp = rospy.Time.from_sec(3)
             goal_pose.header.frame_id = 'my_planner'
             goal_pose.pose = self.robot_init_pose
-            self.robot.control_robot_with_moveit(goal_pose)
+            # self.robot.control_robot_with_moveit(goal_pose)
+            self.robot.control_using_ikfast(goal_pose)
+            self.mode = 'violent'
         elif mode == 'slight':
             height = 0.05
             pose = self.height2pose(height)
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
-            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.stamp = rospy.Time.from_sec(3)
             goal_pose.header.frame_id = 'my_planner'
             goal_pose.pose = self.robot_init_pose
             goal_pose.pose = pose
-            self.robot.robot.go_to_pose(pose)
+            # self.robot.robot.go_to_pose(pose)
+            self.robot.control_using_ikfast(goal_pose)
+            self.mode = 'slight'
         else:
             print('no such mode')
 
@@ -83,7 +104,8 @@ class FeedbackPouringControl:
             goal_pose.header.frame_id = 'my_planner'
             goal_pose.pose = self.robot_init_pose
             goal_pose.pose = pose
-            self.robot.robot.go_to_pose(pose)
+            # self.robot.robot.go_to_pose(pose)
+            self.robot.control_using_ikfast(goal_pose)
             self.mode = 'slight'
         elif self.mode == 'slight' and ratio > (1 + self.allowable_error)*self.expected_ratio:
             # too little foam, switch to violent mode
@@ -92,7 +114,8 @@ class FeedbackPouringControl:
             goal_pose.header.stamp = rospy.Time.from_sec(0.5)
             goal_pose.header.frame_id = 'my_planner'
             goal_pose.pose = self.robot_init_pose
-            self.robot.control_robot_with_moveit(goal_pose)
+            # self.robot.control_robot_with_moveit(goal_pose)
+            self.robot.control_using_ikfast(goal_pose)
             self.mode = 'violent'
 
     def ball_control(self, liquid_level):

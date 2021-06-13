@@ -9,6 +9,7 @@ from enum import Enum
 from ur5eIKFast import ur5e_ik_fast
 
 
+
 ControlMode = Enum('Mode', ('my_ur_ik', 'moveit', 'ikfast'))
 
 
@@ -55,7 +56,7 @@ class MyRobotPlanner(object):
         self.control_mode = control_mode
         rospy.Subscriber(topic_state, JointTrajectoryControllerState, self.robot_monitor.update_robot_state)
         print('robot go home')
-        self.robot.go_home()
+        # self.robot.go_home()
 
     # in first situation gaol point is a joint value
     # in the other two situations goal point is a pose
@@ -106,19 +107,19 @@ class MyRobotPlanner(object):
         # self.pub.publish(plan.joint_trajectory)
 
     def control_using_ikfast(self, goal_pose, velocity=()):
-        velocity = (0, 0, -1)
-        default_duration = rospy.Duration.from_sec(0.1)
+        # velocity = (0, 0, -1)
+        default_duration = rospy.Duration.from_sec(5)
         # print("get a catch point, the position is ", goal_pose.pose)
         start_point = self.robot_monitor.joint_point
         complete_point(start_point)
         start_point.time_from_start = rospy.Duration.from_sec(0)
         goal_point_ik_joint_space = ur5e_ik_fast(goal_pose.pose)
+        if not goal_point_ik_joint_space:
+            print("can't get ik, pose is ", goal_pose.pose)
+            return
         # print("solutions are")
         # for solution in goal_point_ik_joint_space:
         #     print(solution)
-        if not goal_point_ik_joint_space:
-            print("out of range")
-            return
         best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
         goal_point = JointTrajectoryPoint()
         goal_point.positions = best_solution
@@ -145,7 +146,7 @@ class MyRobotPlanner(object):
                 back_point.time_from_start = rospy.Duration.from_sec(0.2) + goal_point.time_from_start
                 traj.points.append(back_point)
 
-        self.pub.publish(traj)
+        self.robot.group.go(best_solution)
         self.pub_map.publish(self.robot_monitor.joint_point.positions[0])
 
     def modify_time(self, points, expected_time):

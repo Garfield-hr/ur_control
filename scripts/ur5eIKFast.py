@@ -23,7 +23,7 @@ def ur5e_ik_fast(pose):
     except subprocess.CalledProcessError as e:
         out_bytes = e.output
         code = e.returncode
-        #print(out_bytes)
+        print(out_bytes)
         return []
 
     out_text = out_bytes.decode('utf-8')

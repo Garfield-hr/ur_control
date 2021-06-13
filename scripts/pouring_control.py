@@ -1,10 +1,14 @@
 import VisualFeedback.visual_feedback as vf
 from ximea import xiapi
 import cv2 as cv
-from pouring_feedback import FeedbackPouringControl, ControlMode, MyRobotPlanner
+from pouring_feedback import FeedbackPouringControl, ControlMode, MyRobotPlanner, quaternion_format_transform,\
+    quaternion_multiply,quaternion_from_euler
 from VisualFeedback.camera_setting import white_balance_adjustment
 import rospy
 import thread
+import time
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion
+import math
 
 
 class VisualMonitor:
@@ -89,7 +93,7 @@ def robot_setting():
         my_robot_planner = MyRobotPlanner(topic_command=topic_command,
                                           topic_state=topic_state, control_mode=control_mode)
         current_pose = my_robot_planner.robot.group.get_current_pose().pose
-        pouring_control = FeedbackPouringControl(my_robot_planner, current_pose, [0.11, 0.03])
+        pouring_control = FeedbackPouringControl(my_robot_planner, [0.11, 0.03])
         print("robot ready to receive command")
         return pouring_control
 
@@ -203,5 +207,33 @@ def parallel_beer_pouring_control():
             break
 
 
+def ikfast_test():
+    pouring_control = robot_setting()
+    # goal_pose = PoseStamped()
+    # goal_pose.header.seq = 1
+    # goal_pose.header.stamp = rospy.Time.from_sec(5)
+    # goal_pose.header.frame_id = 'my_planner'
+    #
+    # goal_pose.pose.position.x = 0.466
+    # goal_pose.pose.position.y = 0.1
+    # goal_pose.pose.position.z = 0.736
+    # goal_pose.pose.orientation.x = 0
+    # goal_pose.pose.orientation.y = 0
+    # goal_pose.pose.orientation.z = -math.sin(math.pi/4)
+    # goal_pose.pose.orientation.w = math.cos(math.pi/4)
+    # pouring_control.robot.control_using_ikfast(goal_pose)
+    # init_ori = quaternion_format_transform(goal_pose.pose.orientation)
+    # trans = quaternion_from_euler(-math.pi/12, 0, 0)
+
+    while True:
+        try:
+            pouring_control.switch_control('slight')
+            time.sleep(1)
+            pouring_control.switch_control('violent')
+        except KeyboardInterrupt:
+            print('quit')
+            break
+
+
 if __name__ == '__main__':
-    parallel_beer_pouring_control()
+    ikfast_test()
