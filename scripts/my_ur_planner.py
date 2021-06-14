@@ -1,4 +1,6 @@
 #!/usr/bin/env python2
+import rospy
+
 from quadrillion_test import *
 from moveit_test import MoveGroupPythonInteface
 from control_msgs.msg import JointTrajectoryControllerState
@@ -10,7 +12,10 @@ from ur5eIKFast import ur5e_ik_fast
 
 
 
-ControlMode = Enum('Mode', ('my_ur_ik', 'moveit', 'ikfast'))
+class ControlMode(Enum):
+    ikfast = 0
+    moveit = 1
+    my_ur_ik = 2
 
 
 def way_points_by_interpolating(start_pose, goal_pose):
@@ -159,6 +164,27 @@ class MyRobotPlanner(object):
             points[i].time_from_start = rospy.Time.from_sec(new_time)
             points[i].velocities = []
             points[i].accelerations = []
+
+    def go_to_pose(self, pose, need_feedback=False):
+        # default_duration = rospy.Duration.from_sec(3)
+        if isinstance(pose, PoseStamped):
+            # time_to_goal = pose.header.stamp
+            goal_pose = pose.pose
+        elif isinstance(pose, Pose):
+            # time_to_goal = default_duration
+            goal_pose = pose
+        else:
+            raise Exception('input type not supported, input type is ', type(pose))
+        if self.control_mode == ControlMode.ikfast:
+            start_point = self.robot_monitor.joint_point
+            goal_point_ik_joint_space = ur5e_ik_fast(goal_pose)
+            if not goal_point_ik_joint_space:
+                print("can't get ik, pose is ", goal_pose)
+                return
+            best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
+            self.robot.group.go(best_solution)
+            if need_feedback:
+                print('reach, goal pose is ', goal_pose)
 
 
 def complete_point(point):
