@@ -1,7 +1,7 @@
 import VisualFeedback.visual_feedback as vf
 from ximea import xiapi
 import cv2 as cv
-from RobotControl.pouring_feedback import FeedbackPouringControl, ControlMode, MyRobotPlanner
+from RobotControl.pouring_feedback import FeedbackPouringControl, ControlMode, MyRobotPlanner, UrControl
 from VisualFeedback.camera_setting import white_balance_adjustment
 import rospy
 import thread
@@ -77,44 +77,14 @@ def camera_setting():
 
 
 def robot_setting():
-        print('start robot setting')
-        rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
-        simulation_flag = False
-        if simulation_flag:
-            topic_command = '/arm_controller/command'
-            topic_state = '/arm_controller/state'
-        else:
-            topic_command = '/scaled_pos_traj_controller/command'
-            topic_state = '/scaled_pos_traj_controller/state'
-        control_mode = ControlMode.ikfast
-        my_robot_planner = MyRobotPlanner(topic_command=topic_command,
-                                          topic_state=topic_state, control_mode=control_mode)
-        current_pose = my_robot_planner.robot.group.get_current_pose().pose
-        pouring_control = FeedbackPouringControl(my_robot_planner, [0.11, 0.03])
-        print("robot ready to receive command")
-        return pouring_control
+    robot = UrControl()
+    pouring_control = FeedbackPouringControl(robot, [0.11, 0.03])
+    print("robot ready to receive command")
+    return pouring_control
 
 
 def beer_switch_control():
     # robot setting
-    def robot_setting():
-        print('start robot setting')
-        rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
-        simulation_flag = False
-        if simulation_flag:
-            topic_command = '/arm_controller/command'
-            topic_state = '/arm_controller/state'
-        else:
-            topic_command = '/scaled_pos_traj_controller/command'
-            topic_state = '/scaled_pos_traj_controller/state'
-        control_mode = ControlMode.ikfast
-        my_robot_planner = MyRobotPlanner(topic_command=topic_command,
-                                          topic_state=topic_state, control_mode=control_mode)
-        current_pose = my_robot_planner.robot.group.get_current_pose().pose
-        pouring_control = FeedbackPouringControl(my_robot_planner, current_pose, [0.11, 0.03])
-        print("robot ready to receive command")
-        return pouring_control
-
     pouring_control = robot_setting()
 
     # camera setting

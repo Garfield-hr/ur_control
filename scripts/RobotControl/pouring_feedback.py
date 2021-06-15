@@ -2,7 +2,7 @@ import math
 import numpy as np
 from tf.transformations import quaternion_multiply, quaternion_from_euler
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
-from RobotControl.my_ur_planner import MyRobotPlanner, ControlMode
+from RobotControl.my_ur_planner import MyRobotPlanner, ControlMode, UrControl
 import rospy
 
 
@@ -18,26 +18,26 @@ class FeedbackPouringControl:
         self.mode = 'violent'
         self.expected_ratio = 0.5
         self.allowable_error = 0.1
-        self.go_home()
+        self.robot.go_home()
 
-    def go_home(self):
-        goal_pose = PoseStamped()
-        goal_pose.header.seq = 1
-        goal_pose.header.stamp = rospy.Time.from_sec(5)
-        goal_pose.header.frame_id = 'my_planner'
-
-        goal_pose.pose.position.x = 0.466
-        goal_pose.pose.position.y = 0.1
-        goal_pose.pose.position.z = 0.736
-        goal_pose.pose.orientation.x = 0
-        goal_pose.pose.orientation.y = 0
-        goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
-        goal_pose.pose.orientation.w = math.cos(math.pi / 4)
-        self.robot.go_to_pose(goal_pose)
-        self.robot_init_pose = goal_pose.pose
-        self.robot_init_position = self.robot_init_pose.position
-        self.robot_init_orientation = self.robot_init_pose.orientation
-        print('reach home')
+    # def go_home(self):
+    #     goal_pose = PoseStamped()
+    #     goal_pose.header.seq = 1
+    #     goal_pose.header.stamp = rospy.Time.from_sec(5)
+    #     goal_pose.header.frame_id = 'my_planner'
+    #
+    #     goal_pose.pose.position.x = 0.466
+    #     goal_pose.pose.position.y = 0.1
+    #     goal_pose.pose.position.z = 0.736
+    #     goal_pose.pose.orientation.x = 0
+    #     goal_pose.pose.orientation.y = 0
+    #     goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
+    #     goal_pose.pose.orientation.w = math.cos(math.pi / 4)
+    #     self.robot.go_to_pose(goal_pose)
+    #     self.robot_init_pose = goal_pose.pose
+    #     self.robot_init_position = self.robot_init_pose.position
+    #     self.robot_init_orientation = self.robot_init_pose.orientation
+    #     print('reach home')
 
     def ratio_diff2height(self, ratio_diff):
         return 0.5*self.max_height*(ratio_diff + 1)
@@ -151,18 +151,19 @@ def get_command():
 
 if __name__ == '__main__':
     rospy.init_node('pouring_control', anonymous=True, disable_signals=True)
-    simulation_flag = False
-    if simulation_flag:
-        topic_command = '/arm_controller/command'
-        topic_state = '/arm_controller/state'
-    else:
-        topic_command = '/scaled_pos_traj_controller/command'
-        topic_state = '/scaled_pos_traj_controller/state'
-    control_mode = ControlMode.ikfast
-    my_robot_planner = MyRobotPlanner(topic_command=topic_command,
-                                      topic_state=topic_state, control_mode=control_mode)
-    current_pose = my_robot_planner.robot.group.get_current_pose().pose
-    pouring_control = FeedbackPouringControl(my_robot_planner, current_pose, [0.11, 0.03])
+    # simulation_flag = False
+    # if simulation_flag:
+    #     topic_command = '/arm_controller/command'
+    #     topic_state = '/arm_controller/state'
+    # else:
+    #     topic_command = '/scaled_pos_traj_controller/command'
+    #     topic_state = '/scaled_pos_traj_controller/state'
+    # control_mode = ControlMode.ikfast
+    # my_robot_planner = MyRobotPlanner(topic_command=topic_command,
+    #                                   topic_state=topic_state, control_mode=control_mode)
+    # current_pose = my_robot_planner.robot.group.get_current_pose().pose
+    robot = UrControl()
+    pouring_control = FeedbackPouringControl(robot, [0.11, 0.03])
     print("robot ready to receive command")
 
     while True:
