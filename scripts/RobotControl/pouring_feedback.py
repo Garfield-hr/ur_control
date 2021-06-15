@@ -2,7 +2,7 @@ import math
 import numpy as np
 from tf.transformations import quaternion_multiply, quaternion_from_euler
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
-from my_ur_planner import MyRobotPlanner, ControlMode
+from RobotControl.my_ur_planner import MyRobotPlanner, ControlMode
 import rospy
 
 

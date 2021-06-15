@@ -187,6 +187,50 @@ class MyRobotPlanner(object):
                 print('reach, goal pose is ', goal_pose)
 
 
+class UrControl:
+
+    def __init__(self, control_mode=ControlMode.ikfast):
+        self.robot = MoveGroupPythonInteface()
+
+    def go_to_pose(self, pose, need_feedback=False):
+        # default_duration = rospy.Duration.from_sec(3)
+        if isinstance(pose, PoseStamped):
+            # time_to_goal = pose.header.stamp
+            goal_pose = pose.pose
+        elif isinstance(pose, Pose):
+            # time_to_goal = default_duration
+            goal_pose = pose
+        else:
+            raise Exception('input type not supported, input type is ', type(pose))
+        if self.control_mode == ControlMode.ikfast:
+            start_point = self.robot_monitor.joint_point
+            goal_point_ik_joint_space = ur5e_ik_fast(goal_pose)
+            if not goal_point_ik_joint_space:
+                print("can't get ik, pose is ", goal_pose)
+                return
+            best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
+            self.robot.group.go(best_solution)
+            if need_feedback:
+                print('reach, goal pose is ', goal_pose)
+
+    def go_home(self):
+        goal_pose = PoseStamped()
+        goal_pose.header.seq = 1
+        goal_pose.header.stamp = rospy.Time.from_sec(5)
+        goal_pose.header.frame_id = 'my_planner'
+
+        goal_pose.pose.position.x = 0.466
+        goal_pose.pose.position.y = 0.1
+        goal_pose.pose.position.z = 0.736
+        goal_pose.pose.orientation.x = 0
+        goal_pose.pose.orientation.y = 0
+        goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
+        goal_pose.pose.orientation.w = math.cos(math.pi / 4)
+        self.go_to_pose(goal_pose)
+        print('reach home')
+
+
+
 def complete_point(point):
     if not len(point.positions):
         point.positions = [0, 0, 0, 0, 0, 0]
