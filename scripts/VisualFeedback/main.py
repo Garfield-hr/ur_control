@@ -32,11 +32,11 @@ print('Starting data acquisition...')
 cam.start_acquisition()
 
 white_balance_adjustment(cam)
-print('please adjust camera for pouring measurement')
+print('press any key to start recording, esc to stop')
 adjust_camera(cam)
 
 fourcc = cv2.VideoWriter_fourcc('I', '4', '2', '0')
-output_video = cv2.VideoWriter("/home/hairui/Videos/experiments/ball.avi", fourcc, 24, (640, 600))
+output_video = cv2.VideoWriter("/home/hairuizhu/Videos/616-2.avi", fourcc, 24, (1264, 1016))
 
 try:
     while cv2.waitKey(1) != 27:

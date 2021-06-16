@@ -81,7 +81,7 @@ class FeedbackPouringControl:
             self.robot.go_to_pose(goal_pose)
             self.mode = 'violent'
         elif mode == 'slight':
-            height = 0.05
+            height = 0.08
             pose = self.height2pose(height)
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1

@@ -39,6 +39,12 @@ class VisualMonitor:
     def get_liquid_level(self):
         return self.__liquid_level
 
+    def test_tracking(self):
+        while not self.__stop:
+            _, img = self.cam_roi.get_roi_img()
+            cv.imshow('img', img)
+            cv.waitKey(1)
+
 
 def camera_setting():
     cam = xiapi.Camera()
@@ -169,6 +175,7 @@ def parallel_beer_pouring_control():
             ratio = vm.get_ratio()
             if isinstance(ratio, float):
                 liquid_level = pouring_control.max_height * vm.get_liquid_level()
+                print('ratio is', ratio, 'level is', liquid_level)
                 pouring_control.auto_switch_control(ratio, liquid_level=liquid_level)
         except KeyboardInterrupt as e:
             print('quit')
@@ -177,21 +184,9 @@ def parallel_beer_pouring_control():
 
 def ikfast_test():
     pouring_control = robot_setting()
-    # goal_pose = PoseStamped()
-    # goal_pose.header.seq = 1
-    # goal_pose.header.stamp = rospy.Time.from_sec(5)
-    # goal_pose.header.frame_id = 'my_planner'
-    #
-    # goal_pose.pose.position.x = 0.466
-    # goal_pose.pose.position.y = 0.1
-    # goal_pose.pose.position.z = 0.736
-    # goal_pose.pose.orientation.x = 0
-    # goal_pose.pose.orientation.y = 0
-    # goal_pose.pose.orientation.z = -math.sin(math.pi/4)
-    # goal_pose.pose.orientation.w = math.cos(math.pi/4)
-    # pouring_control.robot.control_using_ikfast(goal_pose)
-    # init_ori = quaternion_format_transform(goal_pose.pose.orientation)
-    # trans = quaternion_from_euler(-math.pi/12, 0, 0)
+    vm = VisualMonitor()
+    thread.start_new_thread(vm.test_tracking, ())
+    print('start monitoring')
 
     while True:
         try:
@@ -204,5 +199,6 @@ def ikfast_test():
 
 
 if __name__ == '__main__':
-    ikfast_test()
+    # ikfast_test()
     # parallel_ball_pouring_control()
+    parallel_beer_pouring_control()

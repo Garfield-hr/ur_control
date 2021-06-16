@@ -29,7 +29,7 @@ class RoiByFourPoints:
 
     def initialize_four_points(self):
         while len(self.points) < 4:
-            print(f'select four points for tracking, {4 - len(self.points)} points left')
+            print('select four points for tracking, %d points left' % 4 - len(self.points))
             cv.waitKey(1000)
 
     def get_roi_img(self):

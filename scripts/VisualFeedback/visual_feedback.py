@@ -95,7 +95,7 @@ class RoiByFourPoints:
         _, img_bin = cv.threshold(img_gray, bin_thresh, 255, cv.THRESH_BINARY)
         if not self.started:
             self.started = self.if_pouring_started(img_bin)
-            return 0.0
+            return 1.0
 
         img_bin_row = np.sum(img_bin, axis=1)
         lower_line = 0
@@ -173,7 +173,7 @@ class RoiByFourPoints:
         return (h2 + h3) / (2 * h1 + h2 + h3)
 
     def if_pouring_started(self, img_bin):
-        min_length = 0.75 * (self.points[2][0] - self.points[1][0])
+        min_length = 0.5 * (self.points[2][0] - self.points[1][0])
         img_selected = np.zeros((img_bin.shape[0], img_bin.shape[1], 3), dtype=np.uint8)
         ret, labels, stats, centroids = cv.connectedComponentsWithStats(img_bin)
         area = 0
