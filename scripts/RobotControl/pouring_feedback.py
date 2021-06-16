@@ -18,26 +18,26 @@ class FeedbackPouringControl:
         self.mode = 'violent'
         self.expected_ratio = 0.5
         self.allowable_error = 0.1
-        self.robot.go_home()
+        self.go_home()
 
-    # def go_home(self):
-    #     goal_pose = PoseStamped()
-    #     goal_pose.header.seq = 1
-    #     goal_pose.header.stamp = rospy.Time.from_sec(5)
-    #     goal_pose.header.frame_id = 'my_planner'
-    #
-    #     goal_pose.pose.position.x = 0.466
-    #     goal_pose.pose.position.y = 0.1
-    #     goal_pose.pose.position.z = 0.736
-    #     goal_pose.pose.orientation.x = 0
-    #     goal_pose.pose.orientation.y = 0
-    #     goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
-    #     goal_pose.pose.orientation.w = math.cos(math.pi / 4)
-    #     self.robot.go_to_pose(goal_pose)
-    #     self.robot_init_pose = goal_pose.pose
-    #     self.robot_init_position = self.robot_init_pose.position
-    #     self.robot_init_orientation = self.robot_init_pose.orientation
-    #     print('reach home')
+    def go_home(self):
+        goal_pose = PoseStamped()
+        goal_pose.header.seq = 1
+        goal_pose.header.stamp = rospy.Time.from_sec(5)
+        goal_pose.header.frame_id = 'my_planner'
+
+        goal_pose.pose.position.x = 0.466
+        goal_pose.pose.position.y = 0.1
+        goal_pose.pose.position.z = 0.736
+        goal_pose.pose.orientation.x = 0
+        goal_pose.pose.orientation.y = 0
+        goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
+        goal_pose.pose.orientation.w = math.cos(math.pi / 4)
+        self.robot.go_to_pose(goal_pose)
+        self.robot_init_pose = goal_pose.pose
+        self.robot_init_position = self.robot_init_pose.position
+        self.robot_init_orientation = self.robot_init_pose.orientation
+        print('reach home')
 
     def ratio_diff2height(self, ratio_diff):
         return 0.5*self.max_height*(ratio_diff + 1)

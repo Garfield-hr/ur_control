@@ -190,6 +190,7 @@ class MyRobotPlanner(object):
 class UrControl:
 
     def __init__(self, control_mode=ControlMode.ikfast):
+        self.control_mode = control_mode
         self.robot = MoveGroupPythonInteface()
 
     def go_to_pose(self, pose, need_feedback=False):
@@ -203,12 +204,12 @@ class UrControl:
         else:
             raise Exception('input type not supported, input type is ', type(pose))
         if self.control_mode == ControlMode.ikfast:
-            start_point = self.robot_monitor.joint_point
+            start_point = self.robot.group.get_current_joint_values()
             goal_point_ik_joint_space = ur5e_ik_fast(goal_pose)
             if not goal_point_ik_joint_space:
                 print("can't get ik, pose is ", goal_pose)
                 return
-            best_solution = best_ik_solution(start_point.positions, goal_point_ik_joint_space)
+            best_solution = best_ik_solution(start_point, goal_point_ik_joint_space)
             self.robot.group.go(best_solution)
             if need_feedback:
                 print('reach, goal pose is ', goal_pose)

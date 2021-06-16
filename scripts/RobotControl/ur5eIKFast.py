@@ -12,7 +12,7 @@ def ur5e_ik_fast(pose):
     rot_mat[0][3] = pose.position.x
     rot_mat[1][3] = pose.position.y
     rot_mat[2][3] = pose.position.z
-    ur5e_ik_fast_dir = '/home/hairui/catkin_ws/src/UR5e_ikfast_plugin/src/ur5eIK'
+    ur5e_ik_fast_dir = '/home/hairuizhu/catkin_ws/src/ur_control/src/ikfast'
     cmd = [ur5e_ik_fast_dir]
     for i in range(3):
         for j in range(4):
