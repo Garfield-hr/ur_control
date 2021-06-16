@@ -10,7 +10,7 @@ class FeedbackPouringControl:
 
     # robot_initial_position: pose; geometry_parameter: [h, r]
     # ratio is beer to all and become larger in slight mode
-    def __init__(self, robot, geometry_parameter):
+    def __init__(self, robot, geometry_parameter, assembly_height=0.05):
         self.max_height = geometry_parameter[0]
         self.cup_radius = geometry_parameter[1]
         self.angle = math.pi/12
@@ -18,6 +18,7 @@ class FeedbackPouringControl:
         self.mode = 'violent'
         self.expected_ratio = 0.5
         self.allowable_error = 0.1
+        self.assembly_height = assembly_height
         self.go_home()
 
     def go_home(self):
@@ -28,7 +29,7 @@ class FeedbackPouringControl:
 
         goal_pose.pose.position.x = 0.466
         goal_pose.pose.position.y = 0.1
-        goal_pose.pose.position.z = 0.736
+        goal_pose.pose.position.z = 0.536
         goal_pose.pose.orientation.x = 0
         goal_pose.pose.orientation.y = 0
         goal_pose.pose.orientation.z = -math.sin(math.pi / 4)
@@ -51,10 +52,12 @@ class FeedbackPouringControl:
         expected_pose.orientation = quaternion_format_transform(quaternion_multiply(init_ori, trans))
 
         expected_pose.position.x = self.robot_init_position.x
-        expected_pose.position.y = self.robot_init_position.y - height*math.sin(self.angle) + \
+        expected_pose.position.y = self.robot_init_position.y + self.assembly_height * math.sin(self.angle) - height*math.sin(self.angle) - \
                                    self.cup_radius*math.cos(self.angle)
-        expected_pose.position.z = self.robot_init_position.z - height*math.sin(self.angle) + \
+        expected_pose.position.z = self.robot_init_position.z - self.assembly_height * (1 - math.cos(self.angle)) - height*math.sin(self.angle) + \
                                    self.cup_radius*math.sin(self.angle)
+        # expected_pose.position.y = self.robot_init_position.y + 0.05 * math.sin(self.angle)
+        # expected_pose.position.z = self.robot_init_position.z - 0.05 * (1 - math.cos(self.angle))
         return expected_pose
 
     def feedback_control(self, ratio):

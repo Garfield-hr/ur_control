@@ -146,6 +146,7 @@ def parallel_ball_pouring_control():
     pouring_control = robot_setting()
     vm = VisualMonitor()
     thread.start_new_thread(vm.monitor_pouring, ())
+    print('start monitoring')
 
     while True:
         try:
@@ -204,3 +205,4 @@ def ikfast_test():
 
 if __name__ == '__main__':
     ikfast_test()
+    # parallel_ball_pouring_control()
