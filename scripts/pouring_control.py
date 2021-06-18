@@ -170,6 +170,7 @@ def parallel_beer_pouring_control():
     vm = VisualMonitor()
     thread.start_new_thread(vm.monitor_pouring, ())
 
+
     while True:
         try:
             ratio = vm.get_ratio()

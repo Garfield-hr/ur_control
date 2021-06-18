@@ -67,14 +67,35 @@ def grab_cut(img):
     cv.waitKey(0)
     cv.imwrite(dir_str+'output.jpeg', img)
 
+def cut_img():
+    img_dir = '/home/hairui/Pictures/experiment/'
+    img_name = 'start.jpeg'
+    img = cv.imread(img_dir+img_name)
+    cv.imshow('img', img)
+    points = []
+    def mouse_callback(event, x, y, flags, para):
+        if event == cv.EVENT_LBUTTONDOWN:
+            xy = "%d,%d" % (x, y)
+            points.append([x, y])
+            # cv.circle(img, (x, y), 1, (255, 255, 255), thickness=-1)
+            # cv.putText(img, xy, (x, y), cv.FONT_HERSHEY_PLAIN,
+            #            1.0, (255, 255, 255), thickness=1)
+            cv.imshow('img', img)
+    cv.setMouseCallback('img', mouse_callback)
+    while len(points) != 4:
+        cv.waitKey(1000)
+    cv.destroyAllWindows()
+    x1, x2 = min(points[0][0], points[1][0], points[2][0], points[3][0]), \
+             max(points[0][0], points[1][0], points[2][0], points[3][0])
+    y1, y2 = min(points[0][1], points[1][1], points[2][1], points[3][1]), \
+             max(points[0][1], points[1][1], points[2][1], points[3][1])
+    img_cut = img[y1:y2, x1:x2]
+    cv.imshow('cut', img_cut)
+    cv.waitKey(0)
+    cv.imwrite(img_dir+'cut.jpeg', img_cut)
+
 
 if __name__ == '__main__':
-    img = cv.imread(dir_str + img_str)
-    img = cv.flip(img, 0)
-    if not img.size:
-        print('can not open %s' % img_str)
-        exit(1)
-    grab_cut(img)
-    cv.destroyAllWindows()
+    cut_img()
 
 
