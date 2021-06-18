@@ -36,7 +36,7 @@ print('press any key to start recording, esc to stop')
 adjust_camera(cam)
 
 fourcc = cv2.VideoWriter_fourcc('I', '4', '2', '0')
-output_video = cv2.VideoWriter("/home/hairuizhu/Videos/616-2.avi", fourcc, 24, (1264, 1016))
+output_video = cv2.VideoWriter("/home/hairuizhu/Videos/617-1.avi", fourcc, 24, (1264, 1016))
 
 try:
     while cv2.waitKey(1) != 27:

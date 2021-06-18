@@ -36,7 +36,7 @@ class RoiByFourPoints:
             cv.imshow('image', img)
             cv.waitKey(1)
 
-        if parallel_display_img:
+        if parallel_display_img is not None:
             self.parallel_display_img = parallel_display_img
         else:
             self.parallel_display_img = default_display_img
@@ -120,8 +120,8 @@ class RoiByFourPoints:
             img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         else:
             img_gray = img
-        bin_thresh1 = 120
-        bin_thresh2 = 160
+        bin_thresh1 = 100
+        bin_thresh2 = 120
         if not self.started:
             img_part = img_gray[img.shape[0]/2:]
             _, img_bin = cv.threshold(img_part, bin_thresh1, 255, cv.THRESH_BINARY)
@@ -207,7 +207,7 @@ class RoiByFourPoints:
         return (h2 + h3) / (2 * h1 + h2 + h3)
 
     def if_pouring_started(self, img_bin):
-        min_length = 0.8 * (self.points[2][0] - self.points[1][0])
+        min_length = 0.6 * (self.points[2][0] - self.points[1][0])
         img_selected = np.zeros((img_bin.shape[0], img_bin.shape[1], 3), dtype=np.uint8)
         ret, labels, stats, centroids = cv.connectedComponentsWithStats(img_bin)
         area = 0
