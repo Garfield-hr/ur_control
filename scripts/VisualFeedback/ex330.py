@@ -29,7 +29,7 @@ class RoiByFourPoints:
 
     def initialize_four_points(self):
         while len(self.points) < 4:
-            print('select four points for tracking, %d points left' % 4 - len(self.points))
+            print('select four points for tracking, %d points left' % (4 - len(self.points)))
             cv.waitKey(1000)
 
     def get_roi_img(self):
@@ -130,18 +130,26 @@ def func2():
     img_name = '329-1.jpeg'
     video_name = '317-8D.avi'
     img = cv.imread(pic_dir+img_name)
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     def read_img():
         return True, img
 
     cam_roi = RoiByFourPoints(read_img)
     ret, img_roi = cam_roi.get_roi_img()
-    _, img_bin = cv.threshold(img_roi, 160, 255, cv.THRESH_BINARY)
-    ret, labels, stats, centroids = cv.connectedComponentsWithStats(img_bin)
+    img_roi_gray = cv.cvtColor(img_roi, cv.COLOR_BGR2GRAY)
+    # _, img_bin = cv.threshold(img_roi, 160, 255, cv.THRESH_BINARY)
+    sobely = cv.Sobel(img_roi_gray, cv.CV_64F, 0, 1, ksize=5)
+    sobely_row = np.sum(sobely, axis=1)
+    ind1 = np.where(sobely_row == np.max(sobely_row))[0]
+    ind2 = np.where(sobely_row == np.min(sobely_row))[0]
+    cv.line(img_roi, (0, ind1), (img_roi.shape[1], ind1), (0, 0, 255), 1, 0)
+    cv.line(img_roi, (0, ind2), (img_roi_gray.shape[1], ind2), (0, 255, 0), 1, 0)
+    cv.imshow('img', img_roi)
+    cv.waitKey(0)
 
 
 
 if __name__ == '__main__':
-    func1()
+    func2()
 
 

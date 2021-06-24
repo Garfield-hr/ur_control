@@ -49,7 +49,7 @@ def cut_video():
 
 
 if __name__ == '__main__':
-    vc = cv.VideoCapture('/home/hairui/Videos/experiments/616-2.avi')
+    vc = cv.VideoCapture('/home/hairui/Videos/experiments/618-1.avi')
     frame_num = int(vc.get(cv.CAP_PROP_FRAME_COUNT))
     cv.namedWindow('video', cv.WINDOW_NORMAL)
     cv.createTrackbar('frame', 'video', 0, frame_num, jump_frame)

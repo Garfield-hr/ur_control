@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 import VisualFeedback.visual_feedback as vf
 from ximea import xiapi
 import cv2 as cv
@@ -170,16 +172,28 @@ def parallel_beer_pouring_control():
     vm = VisualMonitor()
     thread.start_new_thread(vm.monitor_pouring, ())
 
+    ratio_list = []
+    liquid_level_list = []
 
     while True:
         try:
             ratio = vm.get_ratio()
             if isinstance(ratio, float):
                 liquid_level = pouring_control.max_height * vm.get_liquid_level()
-                print('ratio is', ratio, 'level is', liquid_level)
                 pouring_control.auto_switch_control(ratio, liquid_level=liquid_level)
+                if ratio != 1:
+                    ratio_list.append(ratio)
+                    liquid_level_list.append(liquid_level)
         except KeyboardInterrupt as e:
-            print('quit')
+            plt.plot(ratio_list)
+            plt.title('beer ratio during pouring')
+            plt.xlabel('frame')
+            plt.figure()
+            plt.plot(liquid_level_list)
+            plt.title('liquid level during pouring')
+            plt.xlabel('frame')
+            plt.ylabel('cm')
+            plt.show()
             break
 
 

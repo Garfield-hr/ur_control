@@ -31,6 +31,10 @@ class RoiByFourPoints:
         self.roi_size = 10
         self.started = False
         self.liquid_level = 0.0
+        self.upper_line = []
+        self.lower_line = []
+        self.inter_para = [0, 0, 0, 0, 0]
+        self.filter_size = 9
 
         def default_display_img(img):
             cv.imshow('image', img)
@@ -63,7 +67,7 @@ class RoiByFourPoints:
             print('select four points for tracking, %d points left' % (4 - len(self.points)))
             cv.waitKey(1000)
 
-    def get_roi_img(self):
+    def get_roi_img(self, extra_height=0):
         ret, img = self.get_next_image()
         if ret:
             for ind, point in enumerate(self.points):
@@ -85,7 +89,7 @@ class RoiByFourPoints:
                      max(self.points[0][0], self.points[1][0], self.points[2][0], self.points[3][0])
             y1, y2 = min(self.points[0][1], self.points[1][1], self.points[2][1], self.points[3][1]), \
                      max(self.points[0][1], self.points[1][1], self.points[2][1], self.points[3][1])
-            return ret, img[y1:y2, x1:x2].copy()
+            return ret, img[y1 - extra_height:y2, x1:x2].copy()
         return ret, ret
 
     def track_four_points(self):
@@ -112,16 +116,16 @@ class RoiByFourPoints:
             self.img_roi = img[y1:y2, x1:x2]
             ret, img = self.get_next_image()
 
-    def get_foam_ratio(self, debug=False):
-        ret, img = self.get_roi_img()
+    def get_foam_ratio(self, debug=False, extra_height=0):
+        ret, img = self.get_roi_img(extra_height=extra_height)
         if not ret:
             return
         if len(img.shape) == 3:
             img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         else:
             img_gray = img
-        bin_thresh1 = 120
-        bin_thresh2 = 160
+        bin_thresh1 = 100
+        bin_thresh2 = 120
         if not self.started:
             img_part = img_gray[img.shape[0]/2:]
             _, img_bin = cv.threshold(img_part, bin_thresh1, 255, cv.THRESH_BINARY)
@@ -132,22 +136,15 @@ class RoiByFourPoints:
         else:
             _, img_bin = cv.threshold(img_gray, bin_thresh2, 255, cv.THRESH_BINARY)
 
-        img_bin_row = np.sum(img_bin, axis=1)
-        lower_line = 0
-        upper_line = 0
-        max_diff = 0
-        min_diff = 0
-        num_rows = len(img_bin_row)
-
-        for ind, val in enumerate(img_bin_row):
-            if ind == 0: continue
-            diff = sum(img_bin_row[ind:]) / (num_rows - ind) - sum(img_bin_row[:ind]) / ind
-            if diff > max_diff:
-                max_diff = diff
-                upper_line = ind
-            if diff < min_diff:
-                min_diff = diff
-                lower_line = ind
+        upper_line, lower_line = img_two_lines(img_bin)
+        upper_line -= extra_height
+        lower_line -= extra_height
+        put_queue(upper_line, self.upper_line, self.filter_size)
+        put_queue(lower_line, self.lower_line, self.filter_size)
+        if len(self.upper_line) < self.filter_size:
+            return 1.0
+        upper_line = get_med_queue(self.upper_line)
+        lower_line = get_med_queue(self.lower_line)
 
         # oordinate of self.points and lines are not same
         # fix it and add function to show result in figures
@@ -180,24 +177,29 @@ class RoiByFourPoints:
         # update liquid level
         self.liquid_level = (self.points[1][1] - self.points[0][1] - upper_line) \
                             / float(self.points[1][1] - self.points[0][1])
+        self.inter_para = [h1, h2, h3, upper_line, lower_line]
 
         # for debug
         if debug:
-            cv.line(img, (0, lower_line), (img.shape[1], lower_line), (0, 0, 255), 1, 0)
-            cv.line(img, (0, upper_line), (img.shape[1], upper_line), (0, 255, 0), 1, 0)
-            [x_lower_left_int, x_lower_right_int, x_upper_left_int] = map(int,
-                                                                          [x_lower_left, x_lower_right, x_upper_left])
-            cv.circle(img, (x_lower_left_int, lower_line), 3, (255, 0, 0), thickness=-1)
-            cv.circle(img, (x_lower_right_int, lower_line), 3, (255, 0, 0), thickness=-1)
-            cv.circle(img, (x_upper_left_int, upper_line), 3, (255, 0, 0), thickness=-1)
-            cv.putText(img, 'h2=%f' % h2, (x_lower_left_int, lower_line), cv.FONT_HERSHEY_PLAIN,
+
+            [x_lower_left_int, x_lower_right_int, x_upper_left_int, lower_line_int, upper_line_int] = map(int,
+                                                                          [x_lower_left, x_lower_right, x_upper_left,
+                                                                           lower_line + extra_height,upper_line + extra_height])
+            cv.line(img, (0, lower_line_int), (img.shape[1], lower_line_int),
+                    (0, 0, 255), 1, 0)
+            cv.line(img, (0, upper_line_int), (img.shape[1], upper_line_int),
+                    (0, 255, 0), 1, 0)
+            cv.circle(img, (x_lower_left_int, lower_line_int), 3, (255, 0, 0), thickness=-1)
+            cv.circle(img, (x_lower_right_int, lower_line_int), 3, (255, 0, 0), thickness=-1)
+            cv.circle(img, (x_upper_left_int, upper_line_int), 3, (255, 0, 0), thickness=-1)
+            cv.putText(img, 'h2=%f' % h2, (x_lower_left_int, lower_line_int), cv.FONT_HERSHEY_PLAIN,
                        1.0, (255, 0, 0), thickness=1)
-            cv.putText(img, 'h3=%f' % h3, (x_lower_right_int, lower_line), cv.FONT_HERSHEY_PLAIN,
+            cv.putText(img, 'h3=%f' % h3, (x_lower_right_int, lower_line_int), cv.FONT_HERSHEY_PLAIN,
                        1.0, (255, 0, 0), thickness=1)
-            cv.putText(img, 'h1=%f' % h1, (x_upper_left_int, upper_line), cv.FONT_HERSHEY_PLAIN,
+            cv.putText(img, 'h1=%f' % h1, (x_upper_left_int, upper_line_int), cv.FONT_HERSHEY_PLAIN,
                        1.0, (255, 0, 0), thickness=1)
             ratio = "%f" % ((h2 + h3) / (2 * h1 + h2 + h3))
-            cv.putText(img, ratio, (10, 10), cv.FONT_HERSHEY_PLAIN,
+            cv.putText(img, ratio, (0, 10), cv.FONT_HERSHEY_PLAIN,
                        1.0, (0, 255, 0), thickness=1)
             length = "%f" % self.liquid_level
             cv.putText(img, length, (0, 50), cv.FONT_HERSHEY_PLAIN,
@@ -207,7 +209,7 @@ class RoiByFourPoints:
         return (h2 + h3) / (2 * h1 + h2 + h3)
 
     def if_pouring_started(self, img_bin):
-        min_length = 0.8 * (self.points[2][0] - self.points[1][0])
+        min_length = 0.6 * (self.points[2][0] - self.points[1][0])
         img_selected = np.zeros((img_bin.shape[0], img_bin.shape[1], 3), dtype=np.uint8)
         ret, labels, stats, centroids = cv.connectedComponentsWithStats(img_bin)
         area = 0
@@ -222,6 +224,29 @@ class RoiByFourPoints:
 
     def get_liquid_level(self):
         return self.liquid_level
+
+    def get_cal_h(self):
+        return self.inter_para
+
+
+def img_two_lines(img):
+    if len(img.shape) == 3:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # sobely = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=5)
+    # sobely_row = np.sum(sobely, axis=1)
+    # upper_line = np.where(sobely_row == np.max(sobely_row))
+    # lower_line = np.where(sobely_row == np.min(sobely_row))
+    img_row = np.sum(img, axis=1)
+    thresh = 0.5*max(img_row)
+    img_row[img_row < thresh] = 0
+    img_diff = np.diff(img_row.astype(np.int16))
+    upper_line = np.where(img_diff == np.max(img_diff))
+    lower_line = np.where(img_diff == np.min(img_diff))
+    while not isinstance(upper_line, int):
+        upper_line = upper_line[0]
+    while not isinstance(lower_line, int):
+        lower_line = lower_line[0]
+    return upper_line, lower_line
 
 
 def foam_seg(image):
@@ -246,11 +271,30 @@ def foam_seg(image):
     return area
 
 
+def median_ave(data, n=9):
+    ret = [np.median(data[max(0, ind - n/2): min(len(data), ind + n/2)]) for ind in range(len(data))]
+    return ret
+
+
+def put_queue(item, queue, max_size=9):
+    if len(queue) < max_size:
+        queue.append(item)
+    elif len(queue) == max_size:
+        queue.pop(0)
+        queue.append(item)
+    else:
+        raise IndexError('queue is longer than max size')
+
+
+def get_med_queue(queue):
+    return np.median(queue)
+
+
 def func1():
     pic_dir = '/home/hairui/Pictures/experiment/'
     vid_dir = '/home/hairui/Videos/experiments/'
     img_name = 'cut.jpeg'
-    video_name = '616-2.avi'
+    video_name = '618-1.avi'
     video_capture = cv.VideoCapture(vid_dir + video_name)
     parallel_displayer = ImgParaDis()
     thread.start_new_thread(parallel_displayer.display_img, ())
@@ -263,18 +307,42 @@ def func1():
     time_consumed.append((time.time() - time_start) * 1000)
     ratio_list = []
     liquid_level_arr = []
+    h1 = []
+    h2 = []
+    h3 = []
+    ul = []
+    ll = []
     while isinstance(ratio, (int, float)):
-        ratio_list.append(ratio)
+
         time_start = time.time()
-        ratio = cam_roi.get_foam_ratio(debug=True)
-        liquid_level_arr.append(cam_roi.get_liquid_level()*11)
+        ratio = cam_roi.get_foam_ratio(debug=True, extra_height=30)
+        heights = cam_roi.get_cal_h()
+        if ratio != 1:
+            ratio_list.append(ratio)
+            liquid_level_arr.append(cam_roi.get_liquid_level() * 11)
+            h1.append(heights[0])
+            h2.append(heights[1])
+            h3.append(heights[2])
+            ul.append(heights[3])
+            ll.append(heights[4])
         time_consumed.append((time.time() - time_start) * 1000)
 
     plt.plot(ratio_list)
     plt.figure()
     plt.plot(time_consumed)
-    plt.figure()
+    plt.figure(23)
+    plt.subplot(231)
     plt.plot(liquid_level_arr)
+    plt.subplot(232)
+    plt.plot(h1)
+    plt.subplot(233)
+    plt.plot(h2)
+    plt.subplot(234)
+    plt.plot(h3)
+    plt.subplot(235)
+    plt.plot(ul)
+    plt.subplot(236)
+    plt.plot(ll)
     plt.show()
     print(sum(time_consumed) / len(time_consumed))
 
@@ -283,22 +351,50 @@ def func2():
     import time
     pic_dir = '/home/hairui/Pictures/experiment/'
     vid_dir = '/home/hairui/Videos/experiments/'
-    img_name = 'cut.jpeg'
+    img_name = 'bad1819.jpeg'
     video_name = '616-2.avi'
     img = cv.imread(pic_dir + img_name)
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    ret = True
+    def read_img():
+        return ret, img
 
-    time_start = time.time()
-    ret, th1 = cv.threshold(img, 125, 255, cv.THRESH_BINARY)
-    time1 = 1000 * (time.time() - time_start)
-    time_start = time.time()
-    ret2, th2 = cv.threshold(img, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-    time2 = 1000 * (time.time() - time_start)
+    parallel_displayer = ImgParaDis()
+    thread.start_new_thread(parallel_displayer.display_img, ())
 
-    print('time1', time1, 'time2', time2)
-    cv.imshow('th1', th1)
-    cv.imshow('th2', th2)
+    cam_roi = RoiByFourPoints(read_img)
+    # cam_roi = RoiByFourPoints(video_capture.read)
+    _, img_roi = cam_roi.get_roi_img()
+    img_gray = cv.cvtColor(img_roi, cv.COLOR_BGR2GRAY)
+    bin_thresh = 100
+    _, img_bin = cv.threshold(img_gray, bin_thresh, 255, cv.THRESH_BINARY)
+    # sobely = cv.Sobel(img, cv.CV_64F, 0, 1, ksize=5)
+    # sobely_row = np.sum(sobely, axis=1)
+    # upper_line = np.where(sobely_row == np.max(sobely_row))
+    # lower_line = np.where(sobely_row == np.min(sobely_row))
+    # while not isinstance(upper_line, int):
+    #     upper_line = upper_line[0]
+    # while not isinstance(lower_line, int):
+    #     lower_line = lower_line[0]
+    img_bin_row = np.sum(img_bin, axis=1)
+    max_val = 0.5*max(img_bin_row)
+    img_bin_row[img_bin_row < max_val] = 0
+    # img_bin_row[img_bin_row > max_val] = 1
+    img_bin_row_type = img_bin_row.astype(np.int16)
+    img_bin_row_diff = np.diff(img_bin_row_type)
+    upper_line = np.where(img_bin_row_diff == np.max(img_bin_row_diff))[0]
+    lower_line = np.where(img_bin_row_diff == np.min(img_bin_row_diff))[0]
+    cv.line(img_roi, (0, lower_line), (img_roi.shape[1], lower_line), (0, 0, 255), 1, 0)
+    cv.line(img_roi, (0, upper_line), (img_roi.shape[1], upper_line), (0, 255, 0), 1, 0)
+    print(upper_line, lower_line)
+
+    cv.imshow('img_bin', img_bin)
+    cv.imshow('img', img_roi)
     cv.waitKey(0)
+    plt.plot(img_bin_row)
+    plt.figure()
+    plt.plot(img_bin_row_diff)
+    plt.show()
+
 
 
 if __name__ == '__main__':
