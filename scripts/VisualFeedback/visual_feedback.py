@@ -40,7 +40,7 @@ class RoiByFourPoints:
             cv.imshow('image', img)
             cv.waitKey(1)
 
-        if parallel_display_img:
+        if parallel_display_img is not None:
             self.parallel_display_img = parallel_display_img
         else:
             self.parallel_display_img = default_display_img
