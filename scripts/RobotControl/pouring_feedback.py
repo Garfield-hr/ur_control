@@ -103,7 +103,6 @@ class FeedbackPouringControl:
             goal_pose.header.seq = 1
             goal_pose.header.stamp = rospy.Time.from_sec(0.5)
             goal_pose.header.frame_id = 'my_planner'
-            goal_pose.pose = self.robot_init_pose
             goal_pose.pose = pose
             self.robot.go_to_pose(goal_pose)
             self.mode = 'slight'
@@ -131,6 +130,50 @@ class FeedbackPouringControl:
             goal_pose.pose = pose
             self.robot.go_to_pose(pose)
             self.mode = 'slight'
+
+    def ball_control_pid(self, liquid_level):
+        if liquid_level > 0.03 or self.mode == 'slight':
+            height = min(0.09, 0.02 + liquid_level)
+            pose = self.height2pose(height)
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = pose
+            self.mode = 'slight'
+        else:
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            self.mode = 'violent'
+        delta_height = -liquid_level
+        goal_pose.pose.position.z += delta_height
+        self.robot.go_to_pose(goal_pose)
+
+    def beer_control_pid(self, ratio, liquid_level=0):
+        error = ratio - self.expected_ratio
+        delta_height = -2*self.max_height*error
+        if error > self.allowable_error or (((error > -self.allowable_error) and (error < self.allowable_error)) and self.mode == 'violent'):
+            # two much beer or used to be using violent and it's ok to keep, use violent
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            self.mode = 'violent'
+        else:
+            height = min(0.09, 0.05 + liquid_level)
+            pose = self.height2pose(height)
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = pose
+            self.mode = 'slight'
+        goal_pose.pose.position.z += delta_height
+        self.robot.go_to_pose(goal_pose)
 
 
 def quaternion_format_transform(quat):

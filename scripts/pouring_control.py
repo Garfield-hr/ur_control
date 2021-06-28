@@ -213,6 +213,23 @@ def ikfast_test():
             break
 
 
+def pid_ball_test():
+    pouring_control = robot_setting()
+    vm = VisualMonitor()
+    thread.start_new_thread(vm.monitor_pouring, ())
+    print('start monitoring')
+
+    while True:
+        try:
+            ratio = vm.get_ratio()
+            if isinstance(ratio, float):
+                liquid_level = pouring_control.max_height * vm.get_liquid_level()
+                pouring_control.ball_control_pid(liquid_level)
+        except KeyboardInterrupt as e:
+            print('quit')
+            break
+
+
 if __name__ == '__main__':
     # ikfast_test()
     # parallel_ball_pouring_control()
