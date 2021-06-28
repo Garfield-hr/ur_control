@@ -218,19 +218,67 @@ def pid_ball_test():
     vm = VisualMonitor()
     thread.start_new_thread(vm.monitor_pouring, ())
     print('start monitoring')
+    time_list = []
 
     while True:
         try:
+            time_start = time.time()
             ratio = vm.get_ratio()
+            time_list.append((time.time() - time_start)*1000)
             if isinstance(ratio, float):
                 liquid_level = pouring_control.max_height * vm.get_liquid_level()
                 pouring_control.ball_control_pid(liquid_level)
         except KeyboardInterrupt as e:
+            plt.plot(time_list)
+            plt.title('time consumed during processing')
+            plt.xlabel('frame')
+            plt.ylabel('ms')
+            plt.show()
             print('quit')
+            break
+
+
+def pid_beer_test():
+    pouring_control = robot_setting()
+    vm = VisualMonitor()
+    thread.start_new_thread(vm.monitor_pouring, ())
+
+    ratio_list = []
+    time_list = []
+    liquid_level_list = []
+
+    while True:
+        try:
+            time_start = time.time()
+            ratio = vm.get_ratio()
+            time_list.append(1000*(time.time() - time_start))
+            if isinstance(ratio, float):
+                liquid_level = pouring_control.max_height * vm.get_liquid_level()
+                pouring_control.beer_control_pid(ratio, liquid_level)
+                if ratio != 1:
+                    ratio_list.append(ratio)
+                    liquid_level_list.append(liquid_level)
+        except KeyboardInterrupt as e:
+            plt.plot(ratio_list)
+            plt.title('beer ratio during pouring')
+            plt.xlabel('frame')
+            plt.figure()
+            plt.plot(liquid_level_list)
+            plt.title('liquid level during pouring')
+            plt.xlabel('frame')
+            plt.ylabel('cm')
+            plt.figure()
+            plt.plot(time_list)
+            plt.title('time consumed during processing')
+            plt.xlabel('frame')
+            plt.ylabel('ms')
+            plt.show()
             break
 
 
 if __name__ == '__main__':
     # ikfast_test()
     # parallel_ball_pouring_control()
-    parallel_beer_pouring_control()
+    # parallel_beer_pouring_control()
+    # pid_ball_test()
+    pid_beer_test()

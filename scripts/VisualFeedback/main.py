@@ -38,7 +38,7 @@ if __name__ == '__main__':
     a = raw_input('press any key to start recording, esc to stop')
 
     fourcc = cv2.VideoWriter_fourcc('I', '4', '2', '0')
-    output_video = cv2.VideoWriter("/home/hairui/Videos/experiments/618-1.avi", fourcc, 24, (1264, 1016))
+    output_video = cv2.VideoWriter("/home/hairuizhu/Videos/624-d1.avi", fourcc, 24, (1264, 1016))
 
     try:
         while cv2.waitKey(1) != 27:

@@ -4,6 +4,7 @@ from tf.transformations import quaternion_multiply, quaternion_from_euler
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 from RobotControl.my_ur_planner import MyRobotPlanner, ControlMode, UrControl
 import rospy
+from copy import deepcopy
 
 
 class FeedbackPouringControl:
@@ -13,7 +14,7 @@ class FeedbackPouringControl:
     def __init__(self, robot, geometry_parameter, assembly_height=0.05):
         self.max_height = geometry_parameter[0]
         self.cup_radius = geometry_parameter[1]
-        self.angle = math.pi/12
+        self.angle = math.pi/6
         self.robot = robot
         self.mode = 'violent'
         self.expected_ratio = 0.5
@@ -97,7 +98,7 @@ class FeedbackPouringControl:
     def auto_switch_control(self, ratio, liquid_level=0):
         if self.mode == 'violent' and ratio < (1 - self.allowable_error)*self.expected_ratio:
             # too much foam, switch to slight mode
-            height = min(0.09, 0.02+liquid_level)
+            height = min(0.09, 0.06+liquid_level)
             pose = self.height2pose(height)
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
@@ -146,22 +147,22 @@ class FeedbackPouringControl:
             goal_pose.header.seq = 1
             goal_pose.header.stamp = rospy.Time.from_sec(0.5)
             goal_pose.header.frame_id = 'my_planner'
-            goal_pose.pose = self.robot_init_pose
+            goal_pose.pose = deepcopy(self.robot_init_pose)
             self.mode = 'violent'
-        delta_height = -liquid_level
+        delta_height = liquid_level
         goal_pose.pose.position.z += delta_height
         self.robot.go_to_pose(goal_pose)
 
     def beer_control_pid(self, ratio, liquid_level=0):
         error = ratio - self.expected_ratio
-        delta_height = -2*self.max_height*error
+        delta_height = max(0, -2*self.max_height*error)
         if error > self.allowable_error or (((error > -self.allowable_error) and (error < self.allowable_error)) and self.mode == 'violent'):
             # two much beer or used to be using violent and it's ok to keep, use violent
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
             goal_pose.header.stamp = rospy.Time.from_sec(0.5)
             goal_pose.header.frame_id = 'my_planner'
-            goal_pose.pose = self.robot_init_pose
+            goal_pose.pose = deepcopy(self.robot_init_pose)
             self.mode = 'violent'
         else:
             height = min(0.09, 0.05 + liquid_level)
