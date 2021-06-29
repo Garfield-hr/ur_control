@@ -8,24 +8,41 @@ import matplotlib.pyplot as plt
 
 
 class ImgParaDis:
-    def __init__(self):
+    def __init__(self, video_dir='/home/hairui/Videos/experiments/', video_name='new.avi', img_size=(1264, 1016)):
+        fourcc = cv.VideoWriter_fourcc('I', '4', '2', '0')
+        self.output_video = cv.VideoWriter(video_dir+video_name, fourcc, 24, img_size)
+        self.img_dis = None
         self.img_save = None
 
     def update_img(self, img):
+        self.img_dis = img
+
+    def update_img_save(self, img):
         self.img_save = img
 
     def display_img(self):
         while True:
-            if self.img_save is not None:
-                img_show = self.img_save
-                self.img_save = None
+            if self.img_dis is not None:
+                img_show = self.img_dis
+                self.img_dis = None
                 cv.imshow('parallel image display', img_show)
                 cv.waitKey(33)
 
+    def save_img(self):
+        while True:
+            if self.img_save is not None:
+                img_save = self.img_save
+                self.img_save = None
+                self.output_video.write(img_save)
+
+class PointPositions:
+    def __init__(self):
+        self.x = []
+        self.y = []
 
 
 class RoiByFourPoints:
-    def __init__(self, next_image, parallel_display_img=None):
+    def __init__(self, next_image, parallel_display_img=None, parallel_save_img=None):
         self.get_next_image = next_image
         self.points = []
         self.roi_size = 10
@@ -35,6 +52,10 @@ class RoiByFourPoints:
         self.lower_line = []
         self.inter_para = [0, 0, 0, 0, 0]
         self.filter_size = 9
+        self.parallel_save_img = parallel_save_img
+        self.points_positions = []
+        for i in range(4):
+            self.points_positions.append(PointPositions())
 
         def default_display_img(img):
             cv.imshow('image', img)
@@ -69,6 +90,8 @@ class RoiByFourPoints:
 
     def get_roi_img(self, extra_height=0):
         ret, img = self.get_next_image()
+        if self.parallel_save_img is not None:
+            self.parallel_save_img(img)
         if ret:
             for ind, point in enumerate(self.points):
 
@@ -84,6 +107,10 @@ class RoiByFourPoints:
                     x = int(mom['m10'] / mom['m00']) + x - self.roi_size
                     y = int(mom['m01'] / mom['m00']) + y - self.roi_size
                 self.points[ind] = [x, y]
+
+            for i in range(4):
+                self.points_positions[i].x.append(self.points[i][0])
+                self.points_positions[i].y.append(self.points[i][1])
 
             x1, x2 = min(self.points[0][0], self.points[1][0], self.points[2][0], self.points[3][0]), \
                      max(self.points[0][0], self.points[1][0], self.points[2][0], self.points[3][0])
@@ -298,8 +325,9 @@ def func1():
     video_capture = cv.VideoCapture(vid_dir + video_name)
     parallel_displayer = ImgParaDis()
     thread.start_new_thread(parallel_displayer.display_img, ())
+    # thread.start_new_thread(parallel_displayer.save_img, ())
 
-    cam_roi = RoiByFourPoints(video_capture.read, parallel_displayer.update_img)
+    cam_roi = RoiByFourPoints(video_capture.read, parallel_displayer.update_img, parallel_displayer.update_img_save)
     # cam_roi = RoiByFourPoints(video_capture.read)
     time_consumed = []
     time_start = time.time()
@@ -343,8 +371,24 @@ def func1():
     plt.plot(ul)
     plt.subplot(236)
     plt.plot(ll)
+    plt.figure(12)
+    plt.subplot(121)
+    plt.plot(cam_roi.points_positions[0].x)
+    plt.plot(cam_roi.points_positions[1].x)
+    plt.plot(cam_roi.points_positions[2].x)
+    plt.plot(cam_roi.points_positions[3].x)
+    plt.legend(('0', '1', '2', '3'),  loc=0)
+    plt.title('x positions')
+    plt.subplot(122)
+    plt.plot(cam_roi.points_positions[0].y)
+    plt.plot(cam_roi.points_positions[1].y)
+    plt.plot(cam_roi.points_positions[2].y)
+    plt.plot(cam_roi.points_positions[3].y)
+    plt.plot('y positions')
+    plt.legend(('0', '1', '2', '3'), loc=0)
     plt.show()
     print(sum(time_consumed) / len(time_consumed))
+    parallel_displayer.output_video.release()
 
 
 def func2():
