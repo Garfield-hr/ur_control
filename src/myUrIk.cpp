@@ -13,22 +13,22 @@
 
 void ur5e_workspace();
 
-int main(int argc, char **argv)
-{
-      ros::init(argc, argv, "my_ur_ik");
-//    // ros::AsyncSpinner spinner(1);
-//    // spinner.start();
-//
-//    const string pub_topic = "my_command";
-//    const string sub_topic = "catch_point";
-//    const string robot_description = "robot_description";
-//
-//    urIkNode ik(pub_topic, sub_topic, robot_description);
-//
-//    ros::spin();
-    ur5e_workspace();
-    return 0;
-}
+//int main(int argc, char **argv)
+//{
+//      ros::init(argc, argv, "my_ur_ik");
+////    // ros::AsyncSpinner spinner(1);
+////    // spinner.start();
+////
+////    const string pub_topic = "my_command";
+////    const string sub_topic = "catch_point";
+////    const string robot_description = "robot_description";
+////
+////    urIkNode ik(pub_topic, sub_topic, robot_description);
+////
+////    ros::spin();
+//    ur5e_workspace();
+//    return 0;
+//}
 
 void ur5e_workspace()
 {

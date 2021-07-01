@@ -54,7 +54,7 @@ include_directories(
         ${THIS_PACKAGE_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}
 )
 
-add_executable(my_ur_ik src/myUrIk.cpp src/ur_ik.h src/ur_ik.cpp)
-target_link_libraries(my_ur_ik ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+add_executable(vf  src/VisualFeedback.cpp src/CamROI.cpp src/CamROI.h)
+target_link_libraries(vf ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS})
 
 
