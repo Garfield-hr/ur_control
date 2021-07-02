@@ -116,7 +116,8 @@ class RoiByFourPoints:
                      max(self.points[0][0], self.points[1][0], self.points[2][0], self.points[3][0])
             y1, y2 = min(self.points[0][1], self.points[1][1], self.points[2][1], self.points[3][1]), \
                      max(self.points[0][1], self.points[1][1], self.points[2][1], self.points[3][1])
-            return ret, img[y1 - extra_height:y2, x1:x2].copy()
+            offset = [x1, y1]
+            return ret, img[y1 - extra_height:y2, x1:x2].copy(), offset
         return ret, ret
 
     def track_four_points(self):
@@ -144,7 +145,7 @@ class RoiByFourPoints:
             ret, img = self.get_next_image()
 
     def get_foam_ratio(self, debug=False, extra_height=0):
-        ret, img = self.get_roi_img(extra_height=extra_height)
+        ret, img, offset = self.get_roi_img(extra_height=extra_height)
         if not ret:
             return
         if len(img.shape) == 3:
@@ -179,31 +180,33 @@ class RoiByFourPoints:
         def x_by_two_points_and_y(xa, ya, xb, yb, y):
             return xb + (y - yb) * (xb - xa) / (yb - ya)
 
-        x_lower_left = x_by_two_points_and_y(0, 0,
-                                             self.points[1][0] - self.points[0][0],
-                                             self.points[1][1] - self.points[0][1],
+        x_lower_left = x_by_two_points_and_y(self.points[0][0] - offset[0],
+                                             self.points[0][1] - offset[1],
+                                             self.points[1][0] - offset[0],
+                                             self.points[1][1] - offset[1],
                                              lower_line)
-        x_lower_right = x_by_two_points_and_y(self.points[2][0] - self.points[0][0],
-                                              self.points[2][1] - self.points[0][1],
-                                              self.points[3][0] - self.points[0][0],
-                                              self.points[3][1] - self.points[0][1],
+        x_lower_right = x_by_two_points_and_y(self.points[2][0] - offset[0],
+                                              self.points[2][1] - offset[1],
+                                              self.points[3][0] - offset[0],
+                                              self.points[3][1] - offset[1],
                                               lower_line)
-        x_upper_left = x_by_two_points_and_y(0, 0,
-                                             self.points[1][0] - self.points[0][0],
-                                             self.points[1][1] - self.points[0][1],
+        x_upper_left = x_by_two_points_and_y(self.points[0][0] - offset[0],
+                                             self.points[0][1] - offset[1],
+                                             self.points[1][0] - offset[0],
+                                             self.points[1][1] - offset[1],
                                              upper_line)
         # h1 upper line to lower line
         # h2 lower left to left corner
         # h3 lower right to right corner
         h1 = math.sqrt((x_upper_left - x_lower_left) ** 2 + (upper_line - lower_line) ** 2)
-        h2 = math.sqrt((x_lower_left - (self.points[1][0] - self.points[0][0])) ** 2 +
-                       (lower_line - (self.points[1][1] - self.points[0][1])) ** 2)
-        h3 = math.sqrt((x_lower_right - (self.points[2][0] - self.points[0][0])) ** 2 +
-                       (lower_line - (self.points[2][1] - self.points[0][1])) ** 2)
+        h2 = math.sqrt((x_lower_left - (self.points[1][0] - offset[0])) ** 2 +
+                       (lower_line - (self.points[1][1] - offset[1])) ** 2)
+        h3 = math.sqrt((x_lower_right - (self.points[2][0] - offset[0])) ** 2 +
+                       (lower_line - (self.points[2][1] - offset[1])) ** 2)
 
         # update liquid level
-        self.liquid_level = (self.points[1][1] - self.points[0][1] - upper_line) \
-                            / float(self.points[1][1] - self.points[0][1])
+        self.liquid_level = (self.points[2][1] - offset[1] - upper_line) \
+                            / float(self.points[2][1] - self.points[3][1])
         self.inter_para = [h1, h2, h3, upper_line, lower_line]
 
         # for debug

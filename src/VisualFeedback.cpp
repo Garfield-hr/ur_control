@@ -7,7 +7,8 @@
 #include <boost/bind.hpp>
 #include <numeric>
 #include "ros/ros.h"
-#include "std_msgs/Float64.h"
+#include "std_msgs/Float64MultiArray.h"
+#include "xiApiPlusOcv.hpp"
 
 
 using namespace std;
@@ -41,7 +42,7 @@ void display_img(ParaDis* p){
             p->updated = false;
             p->mt.unlock();
             imshow(win_name, img_show);
-            waitKey(33);
+            if (waitKey(33) == 27) p->display = false;
         }
         else{
             p->mt.unlock();
@@ -69,14 +70,32 @@ public:
     }
 };
 
-int main(int argc, char **argv){
+class CamRoiXimea:public CamROI{
+private:
+    ParaDis* pd;
+    xiAPIplusCameraOcv* cam;
+public:
+    explicit CamRoiXimea(xiAPIplusCameraOcv* cam, ParaDis* pd){
+        this->pd = pd;
+        this->cam = cam;
+        set_marker_position();
+    }
+    bool read_img(Mat& img) override{
+        img = cam->GetNextImageOcvMat();
+        return true;
+    }
+    void parallel_dis_img(Mat& img) override{
+        pd->update_img(img);
+    }
+};
+
+int func1(int argc, char **argv){
     ros::init(argc, argv, "talker");
     ros::NodeHandle n;
-    ros::Publisher chatter_pub = n.advertise<std_msgs::Float64>("chatter", 1000);
-    std_msgs::Float64 data;
+    ros::Publisher chatter_pub = n.advertise<std_msgs::Float64MultiArray>("BeerPouring", 1000);
     string pic_dir = "/home/hairui/Pictures/experiment/";
     string pic_name = "bad_cup.jpeg";
-    string video_dir = "/home/hairui/Videos/experiments/";
+    string video_dir = "/home/liangxiao/Videos/";
     string video_name = "618-1.avi";
 //    Mat img = imread(pic_dir+pic_name);
 //    Mat img_bin;
@@ -104,14 +123,81 @@ int main(int argc, char **argv){
     vector<double> t_vec;
     double liquid_level, beer_ratio;
     while (my_vc.get_beer_ratio(beer_ratio, liquid_level,true)){
-        data.data = beer_ratio;
-        chatter_pub.publish(data);
         t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
         t1 = clock();
+        std_msgs::Float64MultiArray data;
+        data.data.emplace_back(beer_ratio);
+        data.data.emplace_back(liquid_level);
+        data.data.emplace_back(t_vec.back());
+        chatter_pub.publish(data);
+    }
+    cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
+    cout<<"ave read time "<<accumulate(my_vc.t_read.begin(), my_vc.t_read.end(), 0.0) / my_vc.t_read.size()<<endl;
+    cout<<"ave thresh time "<<accumulate(my_vc.t_thresh.begin(), my_vc.t_thresh.end(), 0.0) / my_vc.t_thresh.size()<<endl;
+    cout<<"ave seg time "<<accumulate(my_vc.t_seg.begin(), my_vc.t_seg.end(), 0.0) / my_vc.t_seg.size()<<endl;
+    pd.display = false;
+    return 0;
+}
+int func2(int argc, char** argv){
+    ros::init(argc, argv, "talker");
+    ros::NodeHandle n;
+    ros::Publisher chatter_pub = n.advertise<std_msgs::Float64MultiArray>("BeerPouring", 1000);
+
+    // Sample for XIMEA OpenCV
+    xiAPIplusCameraOcv cam;
+
+    // Retrieving a handle to the camera device
+    cout << "Opening first camera..." << endl;
+    cam.OpenFirst();
+
+    // Set exposure
+    cam.SetImageDataFormat(XI_RGB24);
+    cam.SetExposureTime(792);
+    cam.SetGain(10);
+    cout << "Starting acquisition..." << endl;
+    cam.StartAcquisition();
+    // Note: The default parameters of each camera might be different in different API versions
+    cout<<"Please adjust the camera for white balancing, esc to continue"<<endl;
+    Mat img_wb;
+    while (waitKey(33) != 27){
+        img_wb = cam.GetNextImageOcvMat();
+        imshow("white balance", img_wb);
+    }
+    cam.SetXIAPIParamInt(XI_PRM_MANUAL_WB, 1);
+    cout<<"OK?"<<endl;
+    while (waitKey(33) != 27){
+        img_wb = cam.GetNextImageOcvMat();
+        imshow("white balance", img_wb);
+    }
+
+    ParaDis pd;
+    CamRoiXimea my_vc(&cam, &pd);
+
+    boost::thread th1(boost::bind(display_img, &pd));
+    Mat img;
+    clock_t t1 = clock();
+    vector<double> t_vec;
+    double liquid_level, beer_ratio;
+    while (pd.display){
+        my_vc.get_beer_ratio(beer_ratio, liquid_level,true);
+        t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
+        t1 = clock();
+        std_msgs::Float64MultiArray data;
+        data.data.emplace_back(beer_ratio);
+        data.data.emplace_back(liquid_level);
+        data.data.emplace_back(t_vec.back());
+        chatter_pub.publish(data);
+
     }
     cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
     cout<<"ave read time "<<accumulate(my_vc.t_read.begin(), my_vc.t_read.end(), 0.0) / my_vc.t_read.size()<<endl;
     cout<<"ave thresh time "<<accumulate(my_vc.t_thresh.begin(), my_vc.t_thresh.end(), 0.0) / my_vc.t_thresh.size()<<endl;
     cout<<"ave seg time "<<accumulate(my_vc.t_seg.begin(), my_vc.t_seg.end(), 0.0) / my_vc.t_seg.size()<<endl;
     return 0;
+
+}
+
+
+int main(int argc, char **argv){
+    return func2(argc, argv);
 }

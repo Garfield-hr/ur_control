@@ -49,7 +49,7 @@ bool CamROI::set_marker_position() {
 
 void OnMouseAction(int event, int x, int y, int flags, void* cam_roi) {
 
-    if (event == CV_EVENT_LBUTTONDOWN){
+    if (event == EVENT_LBUTTONDOWN){
         auto* cam_roi_pointer = reinterpret_cast<CamROI*>(cam_roi);
         cam_roi_pointer->times++;
         cout<<"selected "<<cam_roi_pointer->times<<"points"<<endl;
@@ -59,7 +59,7 @@ void OnMouseAction(int event, int x, int y, int flags, void* cam_roi) {
         for(auto & marker : cam_roi_pointer->markers){
             circle(img, marker, 1, Scalar(0,0, 255), -1);
             string text_xy = to_string(marker.x) + "," + to_string(marker.y);
-            putText(img, text_xy, marker, CV_FONT_HERSHEY_COMPLEX, 1.0,
+            putText(img, text_xy, marker, FONT_HERSHEY_COMPLEX, 1.0,
                     Scalar(0,0, 255), 2, 8, 0);
             imshow("Please select four markers in order", img);
         }
@@ -145,7 +145,7 @@ bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
         threshold(img_bottom, img_bottom_bin, bin_thresh1, 255, THRESH_BINARY);
         pouring_started = if_pouring_started(img_bottom_bin);
         if (debug){
-            parallel_dis_img(img_bottom);
+            parallel_dis_img(img_bottom_bin);
         }
         return true;
     }
@@ -193,10 +193,10 @@ bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
     h2 = norm(lower_left_p - normalize_markers[1]);
     h3 = norm(lower_right_p - normalize_markers[2]);
     ratio = (h2 + h3) / (2*h1 + h2 +h3);
-    liquid_level = (normalize_markers[2].y- upper_line) / (normalize_markers[2].y - normalize_markers[3].y);
+    liquid_level = double(normalize_markers[2].y- upper_line) / (normalize_markers[2].y - normalize_markers[3].y);
     if(debug){
-        line(img_roi, Point(0, upper_line), Point(img_roi.cols, upper_line), Scalar(255, 0, 0), 1, CV_AA);
-        line(img_roi, Point(0, lower_line), Point(img_roi.cols, lower_line), Scalar(0, 0, 255), 1, CV_AA);
+        line(img_roi, Point(0, upper_line), Point(img_roi.cols, upper_line), Scalar(255, 0, 0), 1, 8U);
+        line(img_roi, Point(0, lower_line), Point(img_roi.cols, lower_line), Scalar(0, 0, 255), 1, 8U);
         circle(img_roi,upper_p, 3, Scalar(255,0 ,0));
         circle(img_roi,lower_left_p, 3, Scalar(0,255 ,0));
         circle(img_roi,lower_right_p, 3, Scalar(0,0 ,255));
@@ -216,7 +216,7 @@ void image_seg_two_lines(Mat& img, int& upper_line, int& lower_line){
         cvtColor(img, img, COLOR_BGR2GRAY);
     }
     Mat img_row_summed;
-    reduce(img, img_row_summed, 1, CV_REDUCE_SUM, CV_32S);
+    reduce(img, img_row_summed, 1, REDUCE_SUM, CV_32S);
     vector<int> array;
     vector<int> diff;
     diff.resize(img_row_summed.rows);

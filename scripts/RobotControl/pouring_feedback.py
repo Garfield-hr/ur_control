@@ -21,6 +21,8 @@ class FeedbackPouringControl:
         self.allowable_error = 0.1
         self.assembly_height = assembly_height
         self.go_home()
+        self.error_sum = 0
+        self.error_bef = 0
 
     def go_home(self):
         goal_pose = PoseStamped()
@@ -155,7 +157,8 @@ class FeedbackPouringControl:
 
     def beer_control_pid(self, ratio, liquid_level=0):
         error = ratio - self.expected_ratio
-        delta_height = max(0, -2*self.max_height*error)
+        delta_height = max(0, -self.max_height*(2 * error + 0.5*self.error_sum))
+        self.error_sum += error
         if error > self.allowable_error or (((error > -self.allowable_error) and (error < self.allowable_error)) and self.mode == 'violent'):
             # two much beer or used to be using violent and it's ok to keep, use violent
             goal_pose = PoseStamped()
@@ -174,7 +177,7 @@ class FeedbackPouringControl:
             goal_pose.pose = pose
             self.mode = 'slight'
         goal_pose.pose.position.z += delta_height
-        self.robot.go_to_pose(goal_pose)
+        self.robot.go_to_pose(goal_pose, wait=False)
 
 
 def quaternion_format_transform(quat):

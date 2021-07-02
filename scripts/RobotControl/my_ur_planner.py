@@ -193,7 +193,7 @@ class UrControl:
         self.control_mode = control_mode
         self.robot = MoveGroupPythonInteface()
 
-    def go_to_pose(self, pose, need_feedback=False):
+    def go_to_pose(self, pose, need_feedback=False, wait=True):
         # default_duration = rospy.Duration.from_sec(3)
         if isinstance(pose, PoseStamped):
             # time_to_goal = pose.header.stamp
@@ -210,7 +210,7 @@ class UrControl:
                 print("can't get ik, pose is ", goal_pose)
                 return
             best_solution = best_ik_solution(start_point, goal_point_ik_joint_space)
-            self.robot.group.go(best_solution)
+            self.robot.group.go(best_solution, wait=wait)
             if need_feedback:
                 print('reach, goal pose is ', goal_pose)
 

@@ -11,11 +11,17 @@ import time
 
 
 class VisualMonitor:
-    __ratio_list = []
-    __liquid_level = 0.0
 
     def __init__(self):
         cam = camera_setting()
+        self.__ratio_sum = 0.0
+        self.__ratio_count = 0
+        self.__liquid_level = 0.0
+        self.time_list = []
+        self.ratio_updated = False
+        self.ave_filter_size = 10
+        self.__ratio = 0.0
+        self.__ratio_updated = False
 
         def read_img():
             image = xiapi.Image()
@@ -28,12 +34,27 @@ class VisualMonitor:
 
     def monitor_pouring(self):
         while not self.__stop:
-            self.__ratio_list.append(self.cam_roi.get_foam_ratio(debug=True))
+            time_start = time.time()
+            ratio = self.cam_roi.get_foam_ratio(debug=True)
+            if not self.cam_roi.started:
+                continue
+            self.__ratio_sum += ratio
+            self.__ratio_count += 1
+            if self.__ratio_count == self.ave_filter_size:
+                self.__ratio = 0.1 * self.__ratio_sum
+                self.__ratio_updated = True
+                self.__ratio_sum = 0.0
+                self.__ratio_count = 0
+
             self.__liquid_level = self.cam_roi.get_liquid_level()
+            self.time_list.append(1000*(time.time() - time_start))
 
     def get_ratio(self):
-        if len(self.__ratio_list) > 10:
-            return 0.1*sum(self.__ratio_list[-10:])
+        if self.__ratio_updated:
+            self.__ratio_updated = False
+            return True, self.__ratio
+        else:
+            return False, False
 
     def stop_monitoring(self):
         self.__stop = True
@@ -259,15 +280,13 @@ def pid_beer_test():
     thread.start_new_thread(vm.monitor_pouring, ())
 
     ratio_list = []
-    time_list = []
     liquid_level_list = []
 
     while True:
         try:
-            time_start = time.time()
-            ratio = vm.get_ratio()
-            time_list.append(1000*(time.time() - time_start))
-            if isinstance(ratio, float):
+            updated, ratio = vm.get_ratio()
+            if updated:
+                print('controlling')
                 liquid_level = pouring_control.max_height * vm.get_liquid_level()
                 pouring_control.beer_control_pid(ratio, liquid_level)
                 if ratio != 1:
@@ -283,7 +302,7 @@ def pid_beer_test():
             plt.xlabel('frame')
             plt.ylabel('cm')
             plt.figure()
-            plt.plot(time_list)
+            plt.plot(vm.time_list)
             plt.title('time consumed during processing')
             plt.xlabel('frame')
             plt.ylabel('ms')
