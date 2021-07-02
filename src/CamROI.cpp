@@ -19,7 +19,8 @@ void CamROI::display_video() {
     Mat img;
     clock_t t1 = clock();
     vector<double> t_vec;
-    while (get_beer_ratio(true)){
+    double liquid_level, beer_ratio;
+    while (get_beer_ratio(beer_ratio, liquid_level,true)){
         t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
         t1 = clock();
     }
@@ -124,7 +125,7 @@ bool CamROI::if_pouring_started(Mat &img_bin) {
     return this_img_started;
 }
 
-bool CamROI::get_beer_ratio(bool debug) {
+bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
     Mat img_roi, img_gray;
     int filter_size = 9;
     Point2i offset;
@@ -152,7 +153,6 @@ bool CamROI::get_beer_ratio(bool debug) {
     int upper_line, lower_line;
     threshold(img_gray, img_bin, bin_thresh2, 255, THRESH_BINARY);
     image_seg_two_lines(img_bin, upper_line, lower_line);
-    double upper_line_fil, lower_line_fil;
 
     // mid filter
     if (upper_line_vec.size() == filter_size){
@@ -175,7 +175,7 @@ bool CamROI::get_beer_ratio(bool debug) {
         }
     }
     vector<Point2i> normalize_markers;
-    for(auto marker : markers){
+    for(const auto& marker : markers){
         Point2i normalize_marker;
         normalize_marker.x = marker.x - offset.x;
         normalize_marker.y = marker.y - offset.y;
@@ -192,6 +192,8 @@ bool CamROI::get_beer_ratio(bool debug) {
     h1 = norm(upper_p - lower_left_p);
     h2 = norm(lower_left_p - normalize_markers[1]);
     h3 = norm(lower_right_p - normalize_markers[2]);
+    ratio = (h2 + h3) / (2*h1 + h2 +h3);
+    liquid_level = (normalize_markers[2].y- upper_line) / (normalize_markers[2].y - normalize_markers[3].y);
     if(debug){
         line(img_roi, Point(0, upper_line), Point(img_roi.cols, upper_line), Scalar(255, 0, 0), 1, CV_AA);
         line(img_roi, Point(0, lower_line), Point(img_roi.cols, lower_line), Scalar(0, 0, 255), 1, CV_AA);

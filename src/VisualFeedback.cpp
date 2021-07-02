@@ -5,6 +5,10 @@
 #include <time.h>
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
+#include <numeric>
+#include "ros/ros.h"
+#include "std_msgs/Float64.h"
+
 
 using namespace std;
 using namespace cv;
@@ -65,7 +69,11 @@ public:
     }
 };
 
-int main(){
+int main(int argc, char **argv){
+    ros::init(argc, argv, "talker");
+    ros::NodeHandle n;
+    ros::Publisher chatter_pub = n.advertise<std_msgs::Float64>("chatter", 1000);
+    std_msgs::Float64 data;
     string pic_dir = "/home/hairui/Pictures/experiment/";
     string pic_name = "bad_cup.jpeg";
     string video_dir = "/home/hairui/Videos/experiments/";
@@ -90,7 +98,20 @@ int main(){
         return -1;
     }
     CamRoiVc my_vc(&vc, &pd);
-    boost::thread t1(boost::bind(display_img, &pd));
-    my_vc.display_video();
+    boost::thread th1(boost::bind(display_img, &pd));
+    Mat img;
+    clock_t t1 = clock();
+    vector<double> t_vec;
+    double liquid_level, beer_ratio;
+    while (my_vc.get_beer_ratio(beer_ratio, liquid_level,true)){
+        data.data = beer_ratio;
+        chatter_pub.publish(data);
+        t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
+        t1 = clock();
+    }
+    cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
+    cout<<"ave read time "<<accumulate(my_vc.t_read.begin(), my_vc.t_read.end(), 0.0) / my_vc.t_read.size()<<endl;
+    cout<<"ave thresh time "<<accumulate(my_vc.t_thresh.begin(), my_vc.t_thresh.end(), 0.0) / my_vc.t_thresh.size()<<endl;
+    cout<<"ave seg time "<<accumulate(my_vc.t_seg.begin(), my_vc.t_seg.end(), 0.0) / my_vc.t_seg.size()<<endl;
     return 0;
 }

@@ -32,7 +32,7 @@ public:
     friend void OnMouseAction(int event,int x,int y,int flags,void* cam_roi);
     bool read_img_roi(Mat& img_roi, Point2i& offset);
     bool if_pouring_started(Mat& img_bin);
-    bool get_beer_ratio(bool debug = false);
+    bool get_beer_ratio(double& ratio, double& liquid_level, bool debug = false);
 
 };
 void OnMouseAction(int event,int x,int y,int flags,void* cam_roi);
