@@ -107,7 +107,7 @@ def camera_setting():
 
 def robot_setting():
     robot = UrControl()
-    pouring_control = FeedbackPouringControl(robot, [0.11, 0.03])
+    pouring_control = FeedbackPouringControl(robot, [0.14, 0.03])
     print("robot ready to receive command")
     return pouring_control
 

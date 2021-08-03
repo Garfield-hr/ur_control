@@ -5,6 +5,7 @@
 #include "CamROI.h"
 #include <numeric>
 #include <time.h>
+#include <sstream>
 
 
 CamROI::CamROI() {
@@ -17,17 +18,13 @@ bool CamROI::read_img(Mat& img) {
 
 void CamROI::display_video() {
     Mat img;
-    clock_t t1 = clock();
     vector<double> t_vec;
     double liquid_level, beer_ratio;
     while (get_beer_ratio(beer_ratio, liquid_level,true)){
-        t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
-        t1 = clock();
     }
     cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
     cout<<"ave read time "<<accumulate(t_read.begin(), t_read.end(), 0.0) / t_read.size()<<endl;
-    cout<<"ave thresh time "<<accumulate(t_thresh.begin(), t_thresh.end(), 0.0) / t_thresh.size()<<endl;
-    cout<<"ave seg time "<<accumulate(t_seg.begin(), t_seg.end(), 0.0) / t_seg.size()<<endl;
+
 
 }
 
@@ -68,13 +65,10 @@ void OnMouseAction(int event, int x, int y, int flags, void* cam_roi) {
 }
 
 bool CamROI::read_img_roi(Mat &img_roi, Point2i& offset) {
-    clock_t t1 = clock();
     Mat img_full;
     if (!read_img(img_full)){
         return false;
     }
-    clock_t t2 = clock();
-    t_read.emplace_back((t2 - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
     for(int i=0; i<markers.size(); i++){
         int x = markers[i].x;
         int y = markers[i].y;
@@ -93,8 +87,6 @@ bool CamROI::read_img_roi(Mat &img_roi, Point2i& offset) {
         markers[i].x = x;
         markers[i].y = y;
     }
-    clock_t t3 = clock();
-    t_thresh.emplace_back((t3 - t2) * 1.0 / CLOCKS_PER_SEC * 1000);
     int x1, x2, y1, y2;
     vector<int> x_arr, y_arr;
     for(auto & marker : markers){
@@ -108,13 +100,11 @@ bool CamROI::read_img_roi(Mat &img_roi, Point2i& offset) {
     offset.x = x1;
     offset.y = y1;
     img_full(Range(y1, y2), Range(x1, x2)).copyTo(img_roi);
-    clock_t t4 = clock();
-    t_seg.emplace_back((t4 - t3) * 1.0 / CLOCKS_PER_SEC * 1000);
     return true;
 }
 
 bool CamROI::if_pouring_started(Mat &img_bin) {
-    int min_length = (markers[2].x - markers[1].x) * 6/10;
+    int min_length = (markers[2].x - markers[1].x) * 8/10;
     Mat labels, stats, centroids;
     int num_comp = connectedComponentsWithStats(img_bin, labels, stats, centroids);
     bool this_img_started = false;
@@ -125,11 +115,17 @@ bool CamROI::if_pouring_started(Mat &img_bin) {
     return this_img_started;
 }
 
-bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
+bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug, double time) {
+    using timeT = std::chrono::high_resolution_clock;
+    stringstream ss;
+    auto t1 = timeT::now();
     Mat img_roi, img_gray;
     int filter_size = 9;
     Point2i offset;
     bool ret = read_img_roi(img_roi, offset);
+    double dua1 = std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t1).count() / 1000;
+    t_read.emplace_back(dua1);
+    auto t2 = timeT::now();
 
     if(!ret) return false;
     if (img_roi.channels() == 3){
@@ -147,6 +143,8 @@ bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
         if (debug){
             parallel_dis_img(img_bottom_bin);
         }
+        double dua2 = std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t2).count() / 1000;
+        t_process.emplace_back(dua2);
         return true;
     }
     Mat img_bin;
@@ -200,8 +198,17 @@ bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
         circle(img_roi,upper_p, 3, Scalar(255,0 ,0));
         circle(img_roi,lower_left_p, 3, Scalar(0,255 ,0));
         circle(img_roi,lower_right_p, 3, Scalar(0,0 ,255));
+        string ratio_str;
+        string time_str;
+//        ss << ratio;
+//        ss>>ratio_str;
+        ss << time;
+        ss>>time_str;
+        putText(img_roi, time_str,Point (0, 20), FONT_HERSHEY_COMPLEX,1,Scalar(0 ,0,255),1,8,0);
         parallel_dis_img(img_roi);
     }
+    double dua2 = std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t2).count() / 1000;
+    t_process.emplace_back(dua2);
 
     return true;
 }
@@ -209,6 +216,11 @@ bool CamROI::get_beer_ratio(double& ratio, double& liquid_level, bool debug) {
 void CamROI::parallel_dis_img(Mat &img) {
     imshow("img", img);
     waitKey(1);
+}
+
+bool CamROI::get_marker_position(vector<Point>& markers_position) {
+    markers_position = markers;
+    return true;
 }
 
 void image_seg_two_lines(Mat& img, int& upper_line, int& lower_line){

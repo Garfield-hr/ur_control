@@ -133,11 +133,10 @@ int func1(int argc, char **argv){
     }
     cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
     cout<<"ave read time "<<accumulate(my_vc.t_read.begin(), my_vc.t_read.end(), 0.0) / my_vc.t_read.size()<<endl;
-    cout<<"ave thresh time "<<accumulate(my_vc.t_thresh.begin(), my_vc.t_thresh.end(), 0.0) / my_vc.t_thresh.size()<<endl;
-    cout<<"ave seg time "<<accumulate(my_vc.t_seg.begin(), my_vc.t_seg.end(), 0.0) / my_vc.t_seg.size()<<endl;
     pd.display = false;
     return 0;
 }
+
 int func2(int argc, char** argv){
     ros::init(argc, argv, "talker");
     ros::NodeHandle n;
@@ -175,27 +174,66 @@ int func2(int argc, char** argv){
 
     boost::thread th1(boost::bind(display_img, &pd));
     Mat img;
-    clock_t t1 = clock();
+    using timeT = std::chrono::high_resolution_clock;
+    auto t1 = timeT::now();
     vector<double> t_vec;
     double liquid_level, beer_ratio;
+    auto t_start = timeT::now();
     while (pd.display){
-        my_vc.get_beer_ratio(beer_ratio, liquid_level,true);
-        t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
-        t1 = clock();
+        double t_abs = std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t_start).count() / 1000000;
+        my_vc.get_beer_ratio(beer_ratio, liquid_level,true, t_abs);
+        vector<Point> markers_position;
+        my_vc.get_marker_position(markers_position);
+        t_vec.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t1).count() / 1000);
+        t1 = timeT::now();
         std_msgs::Float64MultiArray data;
         data.data.emplace_back(beer_ratio);
         data.data.emplace_back(liquid_level);
         data.data.emplace_back(t_vec.back());
+        data.data.emplace_back(my_vc.t_read.back());
+        data.data.emplace_back(my_vc.t_process.back());
+        data.data.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(timeT::now() - t_start).count() / 1000);
+        for (const auto& marker : markers_position){
+            data.data.emplace_back(marker.x);
+            data.data.emplace_back(marker.y);
+        }
         chatter_pub.publish(data);
 
     }
     cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
     cout<<"ave read time "<<accumulate(my_vc.t_read.begin(), my_vc.t_read.end(), 0.0) / my_vc.t_read.size()<<endl;
-    cout<<"ave thresh time "<<accumulate(my_vc.t_thresh.begin(), my_vc.t_thresh.end(), 0.0) / my_vc.t_thresh.size()<<endl;
-    cout<<"ave seg time "<<accumulate(my_vc.t_seg.begin(), my_vc.t_seg.end(), 0.0) / my_vc.t_seg.size()<<endl;
     return 0;
 
 }
+
+int func3(int argc, char** argv){
+    // Sample for XIMEA OpenCV
+    xiAPIplusCameraOcv cam;
+
+    // Retrieving a handle to the camera device
+    cout << "Opening first camera..." << endl;
+    cam.OpenFirst();
+
+    // Set exposure
+    cam.SetImageDataFormat(XI_RGB24);
+    cam.SetExposureTime(792);
+    cam.SetGain(10);
+    cout << "Starting acquisition..." << endl;
+    cam.StartAcquisition();
+    // Note: The default parameters of each camera might be different in different API versions
+    cout<<"Please adjust the camera for white balancing, esc to continue"<<endl;
+    Mat img_wb;
+    vector<double> t_vec;
+    while (waitKey(1) != 27){
+        clock_t t1 = clock();
+        img_wb = cam.GetNextImageOcvMat();
+        t_vec.emplace_back((clock() - t1) * 1.0 / CLOCKS_PER_SEC * 1000);
+        imshow("white balance", img_wb);
+    }
+    cout<<"ave time "<<accumulate(t_vec.begin(), t_vec.end(), 0.0) / t_vec.size()<<endl;
+    return 0;
+}
+
 
 
 int main(int argc, char **argv){

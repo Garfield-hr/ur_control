@@ -14,15 +14,16 @@ class FeedbackPouringControl:
     def __init__(self, robot, geometry_parameter, assembly_height=0.05):
         self.max_height = geometry_parameter[0]
         self.cup_radius = geometry_parameter[1]
-        self.angle = math.pi/6
+        self.angle = math.pi/8
         self.robot = robot
         self.mode = 'violent'
-        self.expected_ratio = 0.5
+        self.expected_ratio = 0.4
         self.allowable_error = 0.1
         self.assembly_height = assembly_height
         self.go_home()
         self.error_sum = 0
         self.error_bef = 0
+        self.height = 0
 
     def go_home(self):
         goal_pose = PoseStamped()
@@ -42,6 +43,15 @@ class FeedbackPouringControl:
         self.robot_init_position = self.robot_init_pose.position
         self.robot_init_orientation = self.robot_init_pose.orientation
         print('reach home')
+        height = 0.05
+        pose = self.height2pose(height)
+        goal_pose = PoseStamped()
+        goal_pose.header.seq = 1
+        goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+        goal_pose.header.frame_id = 'my_planner'
+        goal_pose.pose = pose
+        self.mode = 'slight'
+        self.robot.go_to_pose(goal_pose)
 
     def ratio_diff2height(self, ratio_diff):
         return 0.5*self.max_height*(ratio_diff + 1)
@@ -64,7 +74,7 @@ class FeedbackPouringControl:
         return expected_pose
 
     def feedback_control(self, ratio):
-        expected_ratio = 0.5
+        expected_ratio = 0.6
         ratio_diff = ratio - expected_ratio
         height = self.ratio_diff2height(ratio_diff)
         goal_pose = PoseStamped()
@@ -94,13 +104,25 @@ class FeedbackPouringControl:
             goal_pose.pose = pose
             self.robot.go_to_pose(goal_pose)
             self.mode = 'slight'
+        elif mode == 'high':
+            height = 0.08
+            pose = self.height2pose(height)
+            goal_pose = PoseStamped()
+            goal_pose.header.seq = 1
+            goal_pose.header.stamp = rospy.Time.from_sec(3)
+            goal_pose.header.frame_id = 'my_planner'
+            goal_pose.pose = self.robot_init_pose
+            goal_pose.pose = pose
+            goal_pose.pose.position.z += 0.1
+            self.robot.go_to_pose(goal_pose)
+            self.mode = 'high'
         else:
             print('no such mode')
 
     def auto_switch_control(self, ratio, liquid_level=0):
         if self.mode == 'violent' and ratio < (1 - self.allowable_error)*self.expected_ratio:
             # too much foam, switch to slight mode
-            height = min(0.09, 0.06+liquid_level)
+            height = min(0.09, 0.02+liquid_level)
             pose = self.height2pose(height)
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
@@ -155,18 +177,30 @@ class FeedbackPouringControl:
         goal_pose.pose.position.z += delta_height
         self.robot.go_to_pose(goal_pose)
 
-    def beer_control_pid(self, ratio, liquid_level=0):
-        error = ratio - self.expected_ratio
-        delta_height = max(0, -self.max_height*(2 * error + 0.5*self.error_sum))
+    def beer_pid_backup(self, ratio, liquid_level=0):
+        error = self.expected_ratio - ratio
+        # pid = max(0, 2*error + 0.07*self.error_sum)
+        # pid = min(pid, 1)
+        error_diff = error - self.error_bef
+        pid = 1*error + 0.2*error_diff
+        delta_height = 0.8*pid*self.max_height
         self.error_sum += error
-        if error > self.allowable_error or (((error > -self.allowable_error) and (error < self.allowable_error)) and self.mode == 'violent'):
+        if error < -self.allowable_error or (((error > -self.allowable_error) and (error < self.allowable_error)) and self.mode == 'violent'):
             # two much beer or used to be using violent and it's ok to keep, use violent
+            # goal_pose = PoseStamped()
+            # goal_pose.header.seq = 1
+            # goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+            # goal_pose.header.frame_id = 'my_planner'
+            # goal_pose.pose = deepcopy(self.robot_init_pose)
+            # self.mode = 'violent'
+            height = min(0.09, 0.05 + liquid_level)
+            pose = self.height2pose(height)
             goal_pose = PoseStamped()
             goal_pose.header.seq = 1
             goal_pose.header.stamp = rospy.Time.from_sec(0.5)
             goal_pose.header.frame_id = 'my_planner'
-            goal_pose.pose = deepcopy(self.robot_init_pose)
-            self.mode = 'violent'
+            goal_pose.pose = pose
+            self.mode = 'slight'
         else:
             height = min(0.09, 0.05 + liquid_level)
             pose = self.height2pose(height)
@@ -176,8 +210,36 @@ class FeedbackPouringControl:
             goal_pose.header.frame_id = 'my_planner'
             goal_pose.pose = pose
             self.mode = 'slight'
-        goal_pose.pose.position.z += delta_height
+            self.height += delta_height
+            self.height = min(self.height, 0.8*self.max_height)
+            self.height = max(0, self.height)
+            goal_pose.pose.position.z += self.height
+        self.robot.go_to_pose(goal_pose)
+        return self.height
+
+    def beer_control_pid(self, ratio, liquid_level=0):
+        error = self.expected_ratio - ratio
+        # pid = max(0, 2*error + 0.07*self.error_sum)
+        # pid = min(pid, 1)
+        error_diff = error - self.error_bef
+        pid = 2*error + 0.3*error_diff
+        delta_height = pid*self.max_height
+        self.error_sum += error
+        height = min(0.12, 0.08 + liquid_level)
+        pose = self.height2pose(height)
+        goal_pose = PoseStamped()
+        goal_pose.header.seq = 1
+        goal_pose.header.stamp = rospy.Time.from_sec(0.5)
+        goal_pose.header.frame_id = 'my_planner'
+        goal_pose.pose = pose
+        self.mode = 'slight'
+        self.height += delta_height
+        self.height = min(self.height, 0.8 * self.max_height)
+        self.height = max(0, self.height)
+        goal_pose.pose.position.z += self.height
+
         self.robot.go_to_pose(goal_pose, wait=False)
+        return self.height
 
 
 def quaternion_format_transform(quat):

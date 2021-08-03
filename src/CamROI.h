@@ -23,7 +23,7 @@ public:
     int roi_size = 10;
     bool pouring_started = false;
     vector<int> upper_line_vec, lower_line_vec;
-    vector<double> t_read, t_thresh, t_seg;
+    vector<double> t_read, t_process;
     CamROI();
     virtual bool read_img(Mat& img);
     virtual void parallel_dis_img(Mat& img);
@@ -32,7 +32,8 @@ public:
     friend void OnMouseAction(int event,int x,int y,int flags,void* cam_roi);
     bool read_img_roi(Mat& img_roi, Point2i& offset);
     bool if_pouring_started(Mat& img_bin);
-    bool get_beer_ratio(double& ratio, double& liquid_level, bool debug = false);
+    bool get_beer_ratio(double& ratio, double& liquid_level, bool debug = false, double time = 0);
+    bool get_marker_position(vector<Point> &markers_position);
 
 };
 void OnMouseAction(int event,int x,int y,int flags,void* cam_roi);
